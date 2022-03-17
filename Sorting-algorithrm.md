@@ -1,0 +1,183 @@
+---
+title: Sorting algorithrm I
+date: 2021-12-29 12:25:53
+img: https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/sort.png
+categories: algorithm
+---
+
+![sort](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/sort.png)
+
+# 排序算法
+
+## 冒泡排序
+
+​	冒泡排序是一种简单的交换类排序方法，它是通过对相邻数据元素进行交换，逐步将待排序序列变成有序序列的过程。
+
+### **算法思想**
+
+反复扫描待排序序列，再扫描的过程中顺次比较相邻两个元素的大小，逆序就交换位置。
+
+以升序为例，在第一趟冒泡排序中，从第一个记录开始，扫描整个待排序序列，若相邻的两个元素逆序，则交换位置。
+
+在扫描在过程中，不断地将两个相邻记录中关键字大的记录向后移动，最后**必然将待排序列中最大的换到序列的末尾。**
+
+然后进行第二趟冒泡排序，对前n -1个元素进行同样的操作，其结果是使次大的元素被放在第 n - 1个位置上。
+
+然后进行第三趟冒泡排序，对前n - 2个元素进行同样的操作，其结果是使第三大的元素被放在第 n - 2个位置上。
+
+如此反复，知道剩下一个最小的元素。
+
+如果**在某一趟冒泡排序过程中，没有发现一个逆序，说明已经有序，则可以直接结束整个排序**。所以**冒泡排序最多进行 n -1 趟**。（只剩最后一个不用再进行排序，因为已经比它大的已经全在它的右边排好了，所以最多 n - 1趟）
+
+### 动图演示：
+
+![bubbleSort](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/bubbleSort.gif)
+
+### 最好情况
+
+当输入的数据已经是**正序**时（都已经是正序了，我还要你冒泡排序有何用啊）。
+
+### 最坏情况
+
+当输入的数据是**逆序**时（写一个 for 循环反序输出数据不就行了，干嘛要用你冒泡排序呢，我是闲的吗）。
+
+### 代码
+
+```java
+package JZoffer;
+
+import java.lang.reflect.Array;
+import java.util.Arrays;
+
+/**
+ * @author ykangli
+ * @version 1.0
+ * @date 2021/12/29 12:55
+ */
+public class BubbleSort {
+    public static void main(String[] args) {
+        int[] a = {2, 45, 34, 23, 5, 11, 32, 98, 61};
+        int[] ints = new BubbleSort().bubbleSort(a);
+        for (int anInt : ints) {
+            System.out.println(anInt);
+        }
+    }
+
+    public int[] bubbleSort(int[] sourceArray) {
+        //对 arr 进行拷贝，不改变原数组
+        int[] arr = Arrays.copyOf(sourceArray, sourceArray.length);
+        //最多排 n - 1趟
+        for (int i = 1; i < arr.length; i++) {
+            //设置一个flag，当在一趟序列遍历中元素没有发生交换，则证明该序列已经有序，结束整个冒泡排序
+            boolean flag = true;
+            for (int j = 0; j < arr.length - i; j++) {
+                if (arr[j] > arr[j + 1]) {
+                    int temp = arr[j];
+                    arr[j] = arr[j + 1];
+                    arr[j + 1] = temp;
+                    flag = false;
+                }
+            }
+            if (flag) {
+                break;
+            }
+        }
+        return arr;
+    }
+}
+```
+
+### 算法分析
+
+- 时间复杂度：O(N^2)
+- 空间复杂度：O(1)
+
+- 冒泡排序是**稳定**的排序
+
+## 快速排序
+
+### 算法改进要点
+
+冒泡排序在扫描过程中只对相邻两个元素进行比较，因此互换相邻元素只能消除一个逆序。如果能通过两个（不相邻）元素的交换，相处待排序序列中的多个逆序，则会大大加快排序的速度。
+
+快速排序中的一次交换可能消除多个逆序。
+
+### 算法思想
+
+从待排序记录序列中选取一个元素（通常选取第一个元素）为**枢轴**，其关键字设为 pivot，然后将其余关键字小于 pivot的记录移到前面，而将关键字大于或等于 pivot的记录移到后面，结果将待排序记录序列分成两个子表，最后将关键字为 pivot的记录插到其分界线的位置处。将这个过程称为一趟快速排序。通过一次划分后，就以关键字为 pivot的记录来为界，将待排序序列分成了两个子表，且前面子表中所有记录的关键字均小于 pivot ，而后面子表中的所有记录的关键字均大于或等于pivot。对分割后的子表继续按上述原则进行分割，直到所有子表的表长不超过1为止，此时待排序记录序列就变成了一个有序表。
+
+### 算法步骤
+
+假设待划分序列为 r[ low ], r[ low +1 ], ... r[ high ] 。首先将基准记录 r[ low ]移至**变量 pivot** 中．使 r [ low ］相当于空单元，然后反复进行如下两个扫描过程，**直到 low 和 high 相遇**。
+
+high 从右向左扫描，直到r [high] < pivot时，将 r [ high］移至空单元元 r [ Iow ]处，此时 r[ high ]相当于空单元。
+low 从左向右扫描，直到 r [low]  ≥ pivot时，将 r [ low ］移至空单元 r [ high ]，此时 r [l ow ］相当于空单元.
+当 low 和 high 相遇时，r[ low ]或 r [ high ] 相当于空单元，且 r[ low ］**左边所有记录的关键字均小于基准记录的关键字**，而 r [ low ]**右边所有记录的关键字均大于或等于基准记录的关键字**。最后将基准记录移至r[ low ］中就完成一次划分过程。对于 r [ low ］左边的子表和   r [ low］右边的子表可采用同样的方法进行进一步划分。
+
+### 代码
+
+```java
+class QuickSort {
+    public static void main(String[] args) {
+        int[] a = {2, 45, 34, 23, 5, 11, 32, 98, 61};
+        new QuickSort().quickSort(a, 0, 8);
+        for (int i : a) {
+            System.out.println(i);
+        }
+    }
+
+    void quickSort(int[] r, int low, int high) {
+        if (low < high) {
+            //调用一趟快速排序算法，以枢纽pivot为界划分为两个子表
+            int pivot = quickPass(r, low, high);
+            //递归对左子表进行快速排序
+            quickSort(r, low, pivot - 1);
+            //递归对右子表进行快速排序
+            quickSort(r, pivot + 1, high);
+        }
+    }
+
+    /**
+     * 一趟快速排序算法，返回调整后基准数的位置
+     */
+    int quickPass(int[] r, int low, int high) {
+        //选择第一个元素为基准数
+        //有的书上是以中间的数作为基准数的，要实现这个方便非常方便，直接将中间的数和第一个数进行交换就可以了。
+        int pivot = r[low];
+        while (low < high) {
+            while (low < high && r[high] >= pivot) {
+                high--;
+            }
+            if (low < high) {
+                r[low] = r[high];
+                low++;
+            }
+            while (low < high && r[low] < pivot) {
+                low++;
+            }
+            if (low < high) {
+                r[high] = r[low];
+                high--;
+            }
+        }
+        r[low] = pivot;
+        return low;
+    }
+}
+```
+
+### 最好情况
+
+每趟将序列一分两半，正好在表中间，将表分成两个大小相等的子表，为`O(NlogN)`
+
+### 最坏情况
+
+已经排好序。
+
+第一趟经过n - 1 次比较，第一次记录定在原位置，左部子表为空表，右部子表为 n - 1 个记录，第二趟对第一趟排序后的右子表经过 n - 2 次比较，第二个记录定在原位置，左部子表为空表，右部子表为 n - 2个记录 ...... 共需经过 n(n - 1) / 2次比较，所以时间复杂度`O(N^2)`
+
+### 算法分析
+
+- 时间复杂度：*快速排序的最坏运行情况是 **O(n²)**，比如说已排好序的数列。但它的平摊期望时间是 O(nlogn)，且 O(nlogn) 记号中隐含的常数因子很小，比复杂度稳定等于 O(nlogn) 的归并排序要小很多。所以，对绝大多数顺序性较弱的随机数列而言，快速排序总是优于归并排序。*
+- 空间复杂度：快速排序递归算法的执行过程对应一颗二叉树，理想情况下是一颗完全二叉树。平均情况下空间复杂度**O(logN)**
+
