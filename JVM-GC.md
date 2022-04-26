@@ -40,7 +40,7 @@ Java 堆是垃圾收集器管理的主要区域，因此也被称作**GC 堆（G
 
 <img src="https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220326115241488.png" alt="image-20220326115241488" style="zoom: 80%;" />
 
-**哪些对象可以作为 GC Roots 呢？** 🔥🔥🔥高频考题
+#### **哪些对象可以作为 GC Roots 呢？** 🔥🔥🔥高频考题
 
 - 虚拟机栈(栈帧中的本地变量表)中引用的对象
 - 本地方法栈(Native 方法)中引用的对象
