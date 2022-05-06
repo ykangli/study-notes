@@ -267,13 +267,13 @@ private SmsService smsService;
 
 ### `@RestController`和`@Controller`
 
-### `@Controller` 返回一个页面
+#### `@Controller` 返回一个页面
 
-单独使用 `@Controller` 不加 `@ResponseBody`的话一般使用在要返回一个视图的情况，这种情况属于比较传统的Spring MVC 的应用，对应于前后端不分离的情况。
+单独使用 `@Controller` 不加 `@ResponseBody`的话一般使用在要**返回一个视图的情况**，这种情况属于比较传统的Spring MVC 的应用，对应于前后端不分离的情况。
 
 ![图片](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/640)
 
-`@RestController`返回JSON 或 XML 形式数据
+#### `@RestController`返回JSON 或 XML 形式数据
 
 `@RestController`注解是`@Controller`和`@ResponseBody`的合集,表示这是个控制器 bean`。`
 
@@ -289,7 +289,7 @@ MVC是一种**设计模式**，或者也有人说他是一种**软件设计规�
 
 Spring MVC 是 Spring 中的一个很重要的模块，主要赋予 Spring 快速构建 MVC 架构的 Web 程序的能力。
 
-Spring MVC 是一款很优秀的 MVC 框架。Spring MVC 可以帮助我们进行更简洁的 Web 层的开发，并且它天生与 Spring 框架集成。Spring MVC 下我们一般把后端项目分为 Service 层（处理业务）、Dao 层（数据库操作）、Entity 层（实体类）、Controller 层(控制层，返回数据给前台页面)。****
+Spring MVC 是一款很优秀的 MVC 框架。Spring MVC 可以帮助我们进行更简洁的 Web 层的开发，并且它天生与 Spring 框架集成。Spring MVC 下我们一般把后端项目分为 Service 层（处理业务）、Dao 层（数据库操作）、Entity 层（实体类）、Controller 层(控制层，返回数据给前台页面)。
 
 ## Spring 框架中用到了哪些设计模式？
 

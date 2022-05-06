@@ -16,7 +16,7 @@ MVCC 没有正式的标准，在不同的DBMS中MVCC的实现方式可能是不�
 
 ## 2. 快照读与当前读  
 
-MVCC在MySQL InnoDB中的实现主要是为了提高数据库并发性能，用更好的方式去处理 **读-写冲突** ，做到即使有读写冲突时，也能做到 不加锁 ， **非阻塞并发读** ，而这个读指的就是 **快照读** , 而非 **当前读** 。当前读实际上是一种加锁的操作，是悲观锁的实现。而MVCC本质是采用**乐观锁**思想的一种方式。  
+MVCC在MySQL InnoDB中的实现主要是为了提高数据库并发性能，用更好的方式去处理 **读-写冲突** ，做到即使有读写冲突时，也能做到 不加锁 ， **非阻塞并发读** ，而这个读指的就是 **快照读** , 而非 **当前读** 。**当前读实际上是一种加锁的操作，是悲观锁的实现**。而MVCC本质是采用**乐观锁**思想的一种方式。  
 
 ### 2.1 快照读
 
@@ -34,7 +34,7 @@ SELECT * FROM player WHERE ...
 
 ### 2.2 当前读
 
-**当前读**读取的是记录的**最新版本**（最新数据，而不是历史版本的数据），读取时还要保证其他并发事务不能修改当前记录，会对读取的记录进行加锁。加锁的 SELECT，或者对数据进行增删改都会进行当前读。比如：  
+**当前读**读取的是记录的**最新版本**（最新数据，而不是历史版本的数据），读取时还要**保证其他并发事务不能修改当前记录，会对读取的记录进行加锁**。加锁的 SELECT，或者对数据进行增删改都会进行当前读。比如：  
 
 ```sql
 SELECT * FROM student LOCK IN SHARE MODE; # 共享锁
@@ -105,7 +105,7 @@ MVCC 的实现依赖于：**隐藏字段（trx_id ，roll_pointer）、Undo Log�
 
 在MVCC机制中，多个事务对同一个行记录进行更新会产生多个历史快照，这些**历史快照**保存在**Undo Log**里。如果一个事务想要查询这个行记录，需要读取哪个版本的行记录呢?这时就需要用到ReadView了，它帮我们解决了行的可见性问题。
 
-ReadView就是事务A (ReadView和事务是一对一的关系) 在使用MVCC机制进行快照读操作时产生的读视图。当事务启动时，会生成数据库系统当前的一个快照，InnoDB为每个事务构造了一个数组，用来记录并维护系统当前**活跃事务**的ID(**“活跃"指的就是，启动了但还没提交**)。
+ReadView就是事务A (ReadView和事务是一对一的关系) 在使用MVCC机制进行快照读操作时产生的**读视图**。当事务启动时，会生成数据库系统当前的一个快照，InnoDB为每个事务构造了一个数组，用来记录并维护系统当前**活跃事务**的ID(**“活跃"指的就是，启动了但还没提交**)。
 
 ### 4.2 设计思路
 
@@ -182,7 +182,7 @@ ReadView就是事务A (ReadView和事务是一对一的关系) 在使用MVCC机�
 
 <img src="https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220126205017653.png" alt="image-20220126205017653" style="zoom:80%;" />
 
-### 5.1 READ COMMITTED隔离级别下
+### 5.1 READ COMMITTED隔离级别下 ( 解决脏读)
 
 **READ COMMITTED ：每次读取数据前都生成一个ReadView。**
 
@@ -265,7 +265,7 @@ SELECT * FROM student WHERE id = 1; # 得到的列name的值为'王五'
 
 **强调**:	使用READ COMMITTED隔离级别的事务在每次查询开始时都会生成一个独立的ReadView。
 
-### 5.2 REPEATABLE READ隔离级别下
+### 5.2 REPEATABLE READ隔离级别下 （解决幻读）
 
 使用 **REPEATABLE READ** 隔离级别的事务来说，**只会在第一次执行查询语句时生成一个 ReadView** ，之后的查询就不会重复生成了。
 
@@ -351,7 +351,7 @@ SELECT2的执行过程如下:
 
 **幻读**：对于两个事务Session A、Session B, Session A 从一个表中 **读取** 了一个字段, 然后 Session B 在该表中 **插入** 了一些新的行。 之后, 如果 Session A 再次读取 **同一个表**, 就会**多出几行**。那就意味着发生了幻读。
 
-接下来说明InnoDB 是如何解决幻读的（在**REPEATABLE READ隔离级别**下实现）。
+接下来说明**InnoDB 是如何解决幻读**的（在**REPEATABLE READ隔离级别**下实现）。
 
 假设现在表 student 中只有一条数据，数据内容中，主键 id=1，隐藏的 trx_id=10，它的 undo log 如下图所示。  
 
@@ -365,9 +365,9 @@ SELECT2的执行过程如下:
 select * from student where id >= 1;  
 ```
 
-在开始查询之前，MySQL 会为事务 A 产生一个 ReadView，此时 ReadView 的内容如下： **trx_ids=[20,30] ， up_limit_id=20 ， low_limit_id=31 ， creator_trx_id=20** 。
+在开始查询之前，MySQL 会为事务 A **产生一个 ReadView**，此时 ReadView 的内容如下： **trx_ids=[20,30] ， up_limit_id=20 ， low_limit_id=31 ， creator_trx_id=20** 。
 
-由于此时表 student 中只有一条数据，且符合 where id>=1 条件，因此会查询出来。然后根据 ReadView机制，发现该行数据的trx_id=10，小于事务 A 的 ReadView 里 up_limit_id，这表示这条数据是事务 A 开启之前，其他事务就已经提交了的数据，因此事务 A 可以读取到。
+由于此时表 student 中只有一条数据，且符合 where id>=1 条件，因此会查询出来。然后根据 ReadView机制，发现该行数据的**trx_id=10**，小于事务 A 的 ReadView 里 up_limit_id，这表示这条数据是事务 A 开启之前，其他事务就已经提交了的数据，因此事务 A 可以读取到。
 
 结论：事务 A 的第一次查询，能读取到一条数据，id=1。
 
@@ -386,7 +386,7 @@ insert into student(id,name) values(3,'王五');
 
 1）首先 id=1 的这条数据，前面已经说过了，可以被事务 A 看到。
 
-2）然后是 id=2 的数据，它的 trx_id=30，此时事务 A 发现，这个值处于 up_limit_id 和 low_limit_id 之间，因此还需要再判断 30 是否处于 trx_ids 数组内。由于事务 A 的 **trx_ids=[20,30]**，因此在数组内，这表示 id=2 的这条数据是与事务 A 在同一时刻启动的其他事务提交的，所以这条数据不能让事务 A 看到。
+2）然后是 id=2 的数据，它的 trx_id=30，此时事务 A 发现，这个值**处于 up_limit_id 和 low_limit_id 之间**，因此还需要再判断 30 是否处于 trx_ids 数组内。由于事务 A 的 **trx_ids=[20,30]**，因此在数组内，这表示 id=2 的这条数据是与事务 A 在同一时刻启动的其他事务提交的，所以这条数据不能让事务 A 看到。
 
 3）同理，id=3 的这条数据，trx_id 也为 30，因此也不能被事务 A 看见。  
 
