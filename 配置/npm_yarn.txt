@@ -1,0 +1,2 @@
+安装指定版本的yarn
+npm install yarn@1.22.17

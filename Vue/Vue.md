@@ -2809,9 +2809,13 @@ vm中所有的：data、methods、指令等都处于可用状态
 #### 一个重要的内置关系
 
 1. 一个重要的内置关系：VueComponent.prototype.__proto__ === Vue.prototype
-2. 为什么要有这个关系：让组件实例对象（vc）可以访问到 Vue原型上的属性、方法
+2. 为什么要有这个关系：**让组件实例对象（vc）可以访问到 Vue原型上的属性、方法**
 
 待补充
+
+#### Vue与VueComponent的关系
+
+![image-20220613145158065](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220613145158065.png)
 
 ### 单文件组件
 
@@ -4725,37 +4729,1145 @@ export default {
 
 ### ② 通过父组件给子组件绑定一个自定义事件实现子给父传递数据（使用@或v-on）
 
+#### App.vue
+
+```vue
+<template>
+  <div id="root">
+    <h2>{{ schoolName }}</h2>
+    <!-- 通过父组件给子组件传递函数类型的props实现：子给父传递数据 -->
+    <School :getSchoolName="getSchoolName"/>
+
+    <h2>从子组件Student.vue获取的学生名字为:{{ studentName }}</h2>
+    <!-- 通过父组件给子组件绑定一个自定义事件myevent实现：子给父传递数据（第一种写法，使用@或v-on） -->
+    <Student v-on:myevent="getStudentName"/>
+
+  </div>
+
+</template>
+
+<script>
+//引入组件
+import School from "@/components/School";
+import Student from "@/components/Student";
+
+//对外暴露
+export default {
+  name: "App",
+  components: {
+    School,
+    Student
+  },
+  data() {
+    return {
+      msg: '你好啊！',
+      schoolName: '',
+      studentName: ''
+    }
+  },
+  methods: {
+    getSchoolName(name) {
+      console.log('App.vue父组件收到了School.vue子组件传来的学生名字：', name)
+      this.schoolName = name
+    },
+    getStudentName(name, ...params) {
+      this.studentName = name
+      for (let i = 0; i < params.length; i++) {
+        console.log(params[i])
+      }
+    }
+  }
+}
+</script>
+
+<style>
+</style>
+```
+
+#### Student.vue
+
+```vue
+<template>
+  <div class="school">
+    <button @click="sendStudentNameToApp">点我将学生名字发送给App</button>
+  </div>
+</template>
+
+<script>
+export default {
+  //在浏览器vue插件中的名字
+  name: "StudentName",
+  props: [],
+  data() {
+    return {
+      name: 'Allen',
+      age: 18
+    }
+  },
+  methods: {
+    sendStudentNameToApp() {
+      this.$emit('myevent',this.name, 666, 999)
+    }
+  }
+}
+</script>
+
+<style scoped>
+.school {
+  background-color: skyblue;
+  padding: 5px;
+}
+</style>
+```
+
+### ③ 通过父组件给子组件绑定一个自定义事件实现子给父传递数据（使用ref）
+
+待补充
+
+## 全局事件总线（GlobalEventBus）
+
+使得任意组件间的通信
+
+**一种可以在任意组件间通信的方式**，本质上就是一个对象，它必须满足以下条件 
+
+1. 所有的组件对象都必须能看见他 
+2. 这个对象必须能够使用`$on，$emit，$off`方法去绑定、触发和解绑事件
+
+该对象就是`Vue`的实例对象`vm`
+
+`Vue.prototype`的使用方法：通过在原型上定义使其在每个Vue的实例中可用
+
+### 同级组件间传递数据
+
+Student.vue向School.vue传递组件
+
+#### App.vue
+
+```vue
+<template>
+  <div id="app">
+    <h2>{{ msg }}</h2>
+    <School/>
+    <Student/>
+
+  </div>
+
+</template>
+
+<script>
+//引入组件
+import School from "./School";
+import Student from "./Student";
+
+//对外暴露
+export default {
+  name: "App",
+  components: {
+    School,
+    Student
+  },
+  data() {
+    return {
+      msg: '你好啊！',
+      schoolName: '',
+      studentName: ''
+    }
+  },
+  methods: {
+    getSchoolName(name) {
+      console.log('App.vue父组件收到了School.vue子组件传来的学生名字：', name)
+      this.schoolName = name
+    },
+    getStudentName(name, ...params) {
+      this.studentName = name
+      for (let i = 0; i < params.length; i++) {
+        console.log(params[i])
+      }
+    }
+  }
+}
+</script>
+
+<style>
+
+
+</style>
+```
+
+#### main.js
+
+```js
+import Vue from 'vue'
+import App from './App'
+
+Vue.config.productionTip = false
+
+new Vue({
+    //绑定容器
+    el: '#app',
+    //将App组件放入容器中,在 index.html中
+    render: h => h(App),
+    beforeCreate() {
+        Vue.prototype.$bus = this //安装全局事件总线   $bus就是这里new的Vue实例对象 vm
+    }
+})
+```
+
+#### Student.vue
+
+```vue
+<template>
+  <div class="student">
+    <h2>学生姓名：{{name}}</h2>
+    <h2>学生性别：{{sex}}</h2>
+    <button @click="sendStudentNameToSchool">把学生名给School组件</button>
+  </div>
+</template>
+
+<script>
+export default {
+  //在浏览器vue插件中的名字
+  name: "StudentName",
+  props: [],
+  data() {
+    return {
+      name: 'Allen',
+      age: 18,
+      sex: '男'
+    }
+  },
+  methods: {
+    sendStudentNameToSchool() {
+      //触发一个 hello事件
+      this.$bus.$emit('hello', this.name)
+    }
+  }
+}
+</script>
+
+<style scoped>
+.student{
+  background-color: pink;
+  padding: 5px;
+  margin-top: 30px;
+}
+</style>
+```
+
+#### School.vue
+
+```vue
+<template>
+  <!--  组件的结构-->
+  <div class="school">
+    <h2>学校名称：{{ name }}</h2>
+    <h2>学校地址：{{ address }}</h2>
+  </div>
+</template>
+
+<script>
+// 组件交互相关的代码(数据、方法等)
+export default {
+  //在浏览器vue插件中的名字
+  name: 'SchoolName',
+  data() {
+    return {
+      name: '尚硅谷',
+      address: '北京昌平'
+    }
+  },
+  mounted() {
+    this.$bus.$on('hello', (data) => {
+      console.log('我是School组件，收到了数据', data)
+    })
+  },
+  beforeDestroy() {
+    this.$bus.destroy('hello')
+  }
+}
+</script>
+
+<style scoped>
+.school {
+  background-color: skyblue;
+  padding: 5px;
+}
+</style>
+```
+
+### Todo-List案例
+
+利用全局事件总线使得 `App.vue` 能直接向`MyItem.vue`传递数据，不用像之前一样逐层传递
+
+#### App.vue
+
+```vue
+<template>
+  <div id="root">
+    <div class="todo-container">
+      <div class="todo-wrap">
+        <MyHeader :addTodo="addTodo"/>
+        <!--:todos="todos"用props传给子组件MyList，v-bind 来告诉这是一个 JavaScript 表达式而不是一个字符串-->
+        <MyList :todos="todos" :checkTodo="checkTodo" :deleteTodo="deleteTodo"/>
+        <MyFooter :todos="todos" :checkAllTodo="checkAllTodo" :clearAllTodo="clearAllTodo"/>
+      </div>
+      '
+
+
+    </div>
+  </div>
+
+</template>
+
+<script>
+//引入组件
+import MyList from "@/components/MyList";
+import MyFooter from "@/components/MyFooter";
+import MyHeader from "@/components/MyHeader";
+
+//对外暴露
+export default {
+  name: "App",
+  components: {
+    MyHeader,
+    MyFooter,
+    MyList
+  },
+  data() {
+    return {
+      todos: [
+        {id: '001', title: '抽烟', done: false},
+        {id: '002', title: '喝酒', done: false},
+        {id: '003', title: '烫头', done: false},
+      ]
+    }
+  },
+  methods: {
+    ////添加一个todo
+    addTodo(todoObj) {
+      this.todos.unshift(todoObj)
+    },
+    //勾选或者取消一个todo
+    checkTodo(id) {
+      this.todos.forEach((todo) => {
+        if (todo.id === id) todo.done = !todo.done
+      })
+    },
+    //删除一个todo
+    deleteTodo(id) {
+      this.todos = this.todos.filter(todo => todo.id !== id)
+    },
+    //全选或者取消全选
+    checkAllTodo(done) {
+      this.todos.forEach((todo) => {
+        todo.done = done
+      })
+    },
+    //清除所有已经完成的todo
+    clearAllTodo() {
+      this.todos = this.todos.filter((todo) => {
+        return !todo.done
+      })
+    }
+  },
+  mounted() {
+    //接收数据
+    this.$bus.$on('checkToDo', this.checkTodo)
+    this.$bus.$on('deleteToDo', this.deleteTodo)
+  },
+  beforeDestroy() {
+    this.$bus.$off('checkTodo')
+    this.$bus.$off('deleteTodo')
+  },
+}
+</script>
+
+<style>
+/*base*/
+body {
+  background: #fff;
+}
+
+.btn {
+  display: inline-block;
+  padding: 4px 12px;
+  margin-bottom: 0;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.btn-danger {
+  color: #fff;
+  background-color: #da4f49;
+  border: 1px solid #bd362f;
+}
+
+.btn-danger:hover {
+  color: #fff;
+  background-color: #bd362f;
+}
+
+.btn:focus {
+  outline: none;
+}
+
+.todo-container {
+  width: 600px;
+  margin: 0 auto;
+}
+
+.todo-container .todo-wrap {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+
+</style>
+```
+
+#### MyItem.vue
+
+```vue
+<template>
+  <li>
+    <label>
+      <input type="checkbox" :checked="todo.done" @click="handleCheck(todo.id)"/>
+      <span>{{ todo.title }}</span>
+    </label>
+    <button class="btn btn-danger" @click="handleDelete(todo.id)">删除</button>
+  </li>
+</template>
+
+<script>
+export default {
+  name: "MyItem",
+  props: ['todo',],
+  methods: {
+    handleCheck(id) {
+      //提供数据
+      this.$bus.$emit('checkToDo', id)
+    },
+    handleDelete(id) {
+      if(confirm('确定删除吗？')){
+        //提供数据
+        this.$bus.$emit('deleteTodo', id)
+      }
+    }
+  }
+
+}
+</script>
+
+<style scoped>
+/*item*/
+li {
+  list-style: none;
+  height: 36px;
+  line-height: 36px;
+  padding: 0 5px;
+  border-bottom: 1px solid #ddd;
+}
+
+li label {
+  float: left;
+  cursor: pointer;
+}
+
+li label li input {
+  vertical-align: middle;
+  margin-right: 6px;
+  position: relative;
+  top: -1px;
+}
+
+li button {
+  float: right;
+  display: none;
+  margin-top: 3px;
+}
+
+li:before {
+  content: initial;
+}
+
+li:last-child {
+  border-bottom: none;
+}
+
+li:hover {
+  background-color: #ddd;
+}
+
+li:hover button {
+  display: block;
+}
+</style>
+```
+
+#### MyList.vue
+
+```vue
+<template>
+  <ul class="todo-main">
+    <!--:key="todoObj.id 唯一标识， v-bind="todoObj"为父组件MyList传递数据给子组件MyItem数据-->
+    <MyItem v-for="todoObj in todos" :key="todoObj.id" :todo="todoObj" />
+  </ul>
+</template>
+
+<script>
+import MyItem from "./MyItem";
+
+export default {
+  name: "MyList",
+  components: {
+    MyItem
+  },
+  //用props从父组件App.vue向子组件MyList.vue传递数据
+  props: ['todos',]
+
+}
+</script>
+
+<style scoped>
+/*main*/
+.todo-main {
+  margin-left: 0px;
+  border: 1px solid #ddd;
+  border-radius: 2px;
+  padding: 0px;
+}
+
+.todo-empty {
+  height: 40px;
+  line-height: 40px;
+  border: 1px solid #ddd;
+  border-radius: 2px;
+  padding-left: 5px;
+  margin-top: 10px;
+}
+</style>
+```
+
+#### MyHeader.vue
+
+```vue
+<template>
+  <div class="todo-header">
+    <input type="text" placeholder="请输入你的任务名称，按回车键确认" v-model="title" @keyup.enter="add()"/>
+  </div>
+</template>
+
+<script>
+import {nanoid} from 'nanoid'
+
+export default {
+  name: "MyHeader",
+  data() {
+    return {
+      title: '',
+    }
+  },
+  //接收从App传递过来的addTodo
+  props: ['addTodo', ],
+  methods: {
+    add() {
+      //校验数据
+      if (!this.title.trim()) return alert('输入不能为空')
+      //将用户的输入包装成一个todo对象
+      const todoObj = {id: nanoid(), title: this.title, done: false}
+      //通知App组件去添加一个todo对象
+      this.addTodo(todoObj)
+      //清空输入
+      this.title = ''
+    }
+  }
+}
+</script>
+
+<style scoped>
+/*header*/
+.todo-header input {
+  width: 560px;
+  height: 28px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 4px 7px;
+}
+
+.todo-header input:focus {
+  outline: none;
+  border-color: rgba(82, 168, 236, 0.8);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
+}
+</style>
+```
+
+#### main.js
+
+```js
+import Vue from 'vue'
+import App from './App'
+
+Vue.config.productionTip = false
+
+new Vue({
+    //绑定容器
+    el: '#app',
+    //将App组件放入容器中,在 index.html中
+    render: h => h(App),
+    beforeCreate() {
+        Vue.prototype.$bus = this //安装全局事件总线   $bus就是这里new的Vue实例对象 vm
+    }
+})
+```
+
+## 消息订阅与发布
+
+待补充
 
 
 
+## $ nextTrick过渡与动画
+
+待补充
 
 
 
+## slot插槽
 
+<slot>插槽：让父组件可以向子组件指定位置插入**html结构**，**也是一种组件间通信的方式**， 适用于 **父组件 ===> 子组件** 
 
+1. 分类：默认插槽、具名插槽、作用域插槽 
 
+2. 使用方式 
 
+   a 默认插槽
 
+   ```vue
+   父组件中：
+           <Category>
+              <div>html结构1</div>
+           </Category>
+   子组件中：Category
+           <template>
+               <div>
+                  <!-- 定义插槽 -->
+                  <slot>插槽默认内容...</slot>
+               </div>
+           </template>
+   ```
 
+   b 具名插槽 父组件指明放入子组件的哪个插槽`slot="footer"`，如果是`template`可以写成`v-slot:footer`
 
+   ```vue
+   父组件中：
+           <Category>
+               <template slot="center">
+                 <div>html结构1</div>
+               </template>
+   
+               <template v-slot:footer>
+                  <div>html结构2</div>
+               </template>
+           </Category>
+   子组件中：
+           <template>
+               <div>
+                  <!-- 定义插槽 -->
+                  <slot name="center">插槽默认内容...</slot>
+                  <slot name="footer">插槽默认内容...</slot>
+               </div>
+           </template>
+   ```
 
+   c 作用域插槽 `scope`用于父组件往子组件插槽放的 html 结构接收子组件的数据 
 
+   理解：数据在组件的自身，但根据数据生成的结构需要**组件的使用者来决定** （`games`数据在`Category`组件（**子组件**）中，但使用数据所遍历出来的结构由App 组件决定）
 
+   ```vue
+   父组件中：
+           <Category>
+               <template scope="scopeData">
+                   <!-- 生成的是ul列表 -->
+                   <ul>
+                     <li v-for="g in scopeData.games" :key="g">{{g}}</li>
+                   </ul>
+               </template>
+           </Category>
+   
+           <Category>
+               <template slot-scope="scopeData">
+                   <!-- 生成的是h4标题 -->
+                   <h4 v-for="g in scopeData.games" :key="g">{{g}}</h4>
+               </template>
+           </Category>
+   子组件中：
+           <template>
+               <div>
+                   <slot :games="games"></slot>
+               </div>
+           </template>
+   		
+           <script>
+               export default {
+                   name:'Category',
+                   props:['title'],
+                   //数据在子组件自身
+                   data() {
+                       return {
+                           games:['红色警戒','穿越火线','劲舞团','超级玛丽']
+                       }
+                   },
+               }
+           </script>
+   ```
 
+### 默认插槽
 
+在自定义标签`Category`内可以继续写结构，利用<slot/><slot>来占位
 
+#### App.vue
 
-## 全局事件总线
+```vue
+<template>
+  <div class="container">
+    <Category title="游戏">
+      <ul>
+        <li v-for="(g,index) in games" :key="index">{{ g }}</li>
+      </ul>
+    </Category>
+    <Category title="美食">
+      <img src="https://s3.ax1x.com/2021/01/16/srJlq0.jpg" alt="">
+    </Category>
+    <Category title="电影">
+      <video controls src="http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4"></video>
+    </Category>
+  </div>
+</template>
 
-任意组件间通信
+<script>
+import Category from "@/components/Category";
 
+export default {
+  name: "App",
+  components: {Category},
+  data() {
+    return {
+      foods: ['火锅', '烧烤', '小龙虾', '牛排'],
+      games: ['红色警戒', '穿越火线', '劲舞团', '超级玛丽'],
+      films: ['《教父》', '《拆弹专家》', '《你好，李焕英》', '《尚硅谷》']
+    }
+  },
+}
 
+</script>
 
+<style>
+.container {
+  display: flex;
+  justify-content: space-around;
+}
+</style>
+```
 
+#### Category.vue
 
+```vue
+<template>
+<div class="category">
+  <h3>{{title}}分类</h3>
+  <!-- 定义一个插槽（挖个坑，等着组件的使用者进行填充） -->
+  <slot></slot>
+</div>
+</template>
 
+<script>
+export default {
+  name: "MyCategory",
+  props:['title']
+}
+</script>
 
+<style scoped>
+.category {
+  background-color: skyblue;
+  width: 200px;
+  height: 300px;
+}
 
+h3 {
+  text-align: center;
+  background-color: orange;
+}
+
+video {
+  width: 100%;
+}
+
+img {
+  width: 100%;
+}
+</style>
+```
+
+#### main.js
+
+```js
+import Vue from 'vue'
+import App from './App'
+
+Vue.config.productionTip = false
+
+new Vue({
+    //绑定容器
+    el: '#app',
+    //将App组件放入容器中,在 index.html中
+    render: h => h(App),
+    beforeCreate() {
+        Vue.prototype.$bus = this //安装全局事件总线   $bus就是这里new的Vue实例对象 vm
+    }
+})
+```
+
+### 具名插槽
+
+#### App.vue
+
+```vue
+<template>
+  <div class="container">
+    <Category title="游戏">
+      <ul slot="center">
+        <li v-for="(g,index) in games" :key="index">{{ g }}</li>
+      </ul>
+    </Category>
+    <Category title="美食">
+      <img slot="center" src="https://s3.ax1x.com/2021/01/16/srJlq0.jpg" alt="">
+      <a slot="footer" href="http://www.atguigu.com">更多美食</a>
+    </Category>
+    <Category title="电影">
+      <video slot="center" controls src="http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4"></video>
+      <template v-slot:footer>
+        <div class="foot">
+          <a href="http://www.atguigu.com">经典</a>
+          <a href="http://www.atguigu.com">热门</a>
+          <a href="http://www.atguigu.com">推荐</a>
+        </div>
+        <h4>欢迎前来观影</h4>
+      </template>
+    </Category>
+  </div>
+</template>
+
+<script>
+import Category from "@/components/Category";
+
+export default {
+  name: "App",
+  components: {Category},
+  data() {
+    return {
+      foods: ['火锅', '烧烤', '小龙虾', '牛排'],
+      games: ['红色警戒', '穿越火线', '劲舞团', '超级玛丽'],
+      films: ['《教父》', '《拆弹专家》', '《你好，李焕英》', '《尚硅谷》']
+    }
+  },
+}
+
+</script>
+
+<style>
+.container, .foot {
+  display: flex;
+  justify-content: space-around;
+}
+
+h4 {
+  text-align: center;
+}
+</style>
+```
+
+#### Category.vue
+
+```vue
+<template>
+<div class="category">
+  <h3>{{title}}分类</h3>
+  <!-- 定义一个插槽（挖个坑，等着组件的使用者进行填充） -->
+  <slot name="center"></slot>
+  <slot name="footer"></slot>
+
+</div>
+</template>
+
+<script>
+export default {
+  name: "MyCategory",
+  props:['title']
+}
+</script>
+
+<style scoped>
+.category {
+  background-color: skyblue;
+  width: 200px;
+  height: 300px;
+}
+
+h3 {
+  text-align: center;
+  background-color: orange;
+}
+
+video {
+  width: 100%;
+}
+
+img {
+  width: 100%;
+}
+</style>
+```
+
+### 作用域插槽
+
+#### App.vue
+
+```vue
+<template>
+  <div class="container">
+    <Category title="游戏">
+      <!--绑定在 <slot> 元素上的 attribute 被称为插槽 prop。现在在父级作用域中，我们可以使用带值的 v-slot 来定义我们提供的插槽 prop 的名字-->
+      <!--只要出现多个插槽，请始终为所有的插槽使用完整的基于 <template> 的语法-->
+      <!--v-slot:default="data"为默认插槽-->
+      <template v-slot:default="data">
+        <ul>
+          <li v-for="(g,index) in data.games" :key="index">{{ g }}</li>
+        </ul>
+      </template>
+    </Category>
+
+    <Category title="游戏">
+      <!--绑定在 <slot> 元素上的 attribute 被称为插槽 prop。现在在父级作用域中，我们可以使用带值的 v-slot 来定义我们提供的插槽 prop 的名字-->
+      <!--只要出现多个插槽，请始终为所有的插槽使用完整的基于 <template> 的语法-->
+      <template v-slot:default="data">
+        <ol>
+          <li v-for="(g,index) in data.games" :key="index">{{ g }}</li>
+        </ol>
+      </template>
+    </Category>
+
+    <Category title="游戏">
+      <!--绑定在 <slot> 元素上的 attribute 被称为插槽 prop。现在在父级作用域中，我们可以使用带值的 v-slot 来定义我们提供的插槽 prop 的名字-->
+      <!--只要出现多个插槽，请始终为所有的插槽使用完整的基于 <template> 的语法-->
+      <template v-slot:default="data">
+        <h4 v-for="(g,index) in data.games" :key="index">{{ g }}</h4>
+      </template>
+    </Category>
+  </div>
+</template>
+
+<script>
+import Category from "@/components/Category";
+
+export default {
+  name: "App",
+  components: {Category},
+
+}
+
+</script>
+
+<style>
+.container, .foot {
+  display: flex;
+  justify-content: space-around;
+}
+
+h4 {
+  text-align: center;
+}
+</style>
+
+```
+
+#### Category.vue
+
+```vue
+<template>
+  <div class="category">
+    <h3>{{ title }}分类</h3>
+    <!-- 定义一个插槽（挖个坑，等着组件的使用者进行填充） -->
+    <!--为了让 games数据 在父级的插槽内容中可用，我们可以将 games 作为 <slot> 元素的一个 attribute 绑定上去-->
+    <slot :games="games"></slot>
+  </div>
+</template>
+
+<script>
+export default {
+  name: "MyCategory",
+  props: ['title'],
+  data() {
+    return {
+      games: ['红色警戒', '穿越火线', '劲舞团', '超级玛丽'],
+    }
+  },
+}
+</script>
+
+<style scoped>
+.category {
+  background-color: skyblue;
+  width: 200px;
+  height: 300px;
+}
+
+h3 {
+  text-align: center;
+  background-color: orange;
+}
+
+video {
+  width: 100%;
+}
+
+img {
+  width: 100%;
+}
+</style>
+```
+
+🔥🔥注意：
+
+1. 默认插槽的缩写语法**不能**和具名插槽混用，因为它会导致作用域不明确
+
+```vue
+<!-- 无效，会导致警告 -->
+<current-user v-slot="slotProps">
+  {{ slotProps.user.firstName }}
+  <template v-slot:other="otherSlotProps">
+    slotProps is NOT available here
+  </template>
+</current-user>
+```
+
+2. 只要出现多个插槽，请始终为*所有的*插槽使用完整的基于 `<template>` 的语法
+
+## **Vue中的Ajax 配置代理**
+
+本案例需要下载`axios`库`npm install axios `
+
+配置参考文档` Vue-Cli devServer.proxy `
+
+`vue.config.js `是一个可选的配置文件，如果项目的 (和 `package.json `同级的) 根目录中存在这个文件，那么它会被 @vue/cli-service 自动加载。你也可以使用`package.json` 中的 `vue `字段，但是注意这种写法需要你严格遵照 JSON 的格式来写
+
+### **方法一**
+
+在`vue.config.js`中添加如下配置
+
+```js
+module.exports = {
+  devServer:{
+    proxy:"http://localhost:5000"
+  }
+}
+```
+
+说明 
+
+1. 优点：配置简单，请求资源时直接发给前端（8080）即可 
+2. 缺点：不能配置多个代理，不能灵活的控制请求是否走代理 
+3. 工作方式：若按照上述配置代理，**当请求了前端不存在的资源时，才会将请求会转发给服务器** （优先匹配前端资源）
+
+**需要重启Vue-CLI**
+
+### **方法二**
+
+在`vue.config.js`配置具体代理规则
+
+```js
+module.exports = {
+	devServer: {
+      proxy: {
+      '/api1': {													// 匹配所有以 '/api1'开头的请求路径
+        target: 'http://localhost:5000',	// 代理目标的基础路径
+        pathRewrite: {'^/api1':''},				// 代理往后端服务器的请求去掉 /api1 前缀
+        ws: true,													// WebSocket
+        changeOrigin: true,
+        
+      },
+      '/api2': {
+        target: 'http://localhost:5001',
+        pathRewrite: {'^/api2': ''},
+        changeOrigin: true
+      }
+    }
+  }
+}
+/*
+   changeOrigin设置为true时，服务器收到的请求头中的host为：localhost:5000
+   changeOrigin设置为false时，服务器收到的请求头中的host为：localhost:8080
+   changeOrigin默认值为true
+*/
+```
+
+说明 
+
+1 优点：可以配置多个代理，且可以灵活的控制请求是否走代理 
+
+2 缺点：配置略微繁琐，请求资源时必须加前缀
+
+**App.vue**
+
+```VUE
+<template>
+	<div>
+		<button @click="getStudents">获取学生信息</button>
+		<button @click="getCars">获取汽车信息</button>
+	</div>
+</template>
+
+<script>
+	import axios from 'axios'
+	export default {
+		name:'App',
+		methods: {
+			getStudents() {
+				axios.get('http://localhost:8080/students').then(
+					response => {
+						console.log('请求成功了',response.data)
+					},
+					error => {
+						console.log('请求失败了',error.message)
+					}
+				)
+			},
+			getCars() {
+				axios.get('http://localhost:8080/demo/cars').then(
+					response => {
+						console.log('请求成功了',response.data)
+					},
+					error => {
+						console.log('请求失败了',error.message)
+					}
+				)
+			}
+		},
+	}
+</script>
+```
+
+### 方法三 （Nginx）
+
+待补充
 
 
 
@@ -4763,4 +5875,1378 @@ export default {
 
 ## Vuex
 
-看到108_搭建vuex环境的同学注意了，记得使用npm i vuex@3.6.2 来安装较低的版本，不然会有一堆奇怪警告和报错，这是因为vuex4.0及以上的版本不兼容Vue2。
+### Vuex是什么
+
+- Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采用集中式存储管理应用的所有组件的状态，并以相应的规则保证状态以一种可预测的方式发生变化。
+- 专门在Vue中实现集中式状态（数据）管理的一个**Vue插件**，对Vue应用中多个组件的共享状态进行集中式的管理（读/写），也是**一种组件间通信的方式**，且**适用于任意组件间通信**
+
+![image-20220613214246022](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220613214246022.png)
+
+![image-20220613214257276](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220613214257276.png)
+
+### **什么时候使用 Vuex**
+
+1. 多个组件依赖同一状态 （如多个组件都需要依赖x）
+2. 来自不同组件的行为需要变更同一状态（不同组件有不同的行为，A组件让x++，B组件让x增大10倍，但修改的都是同一个x）
+
+### **Vuex工作原理图**
+
+![vuex](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/vuex.png)
+
+### 搭建Vuex环境
+
+1. 看到108_搭建Vuex环境的同学注意了，记得使用`npm i vuex@3`来安装较低的版本，不然会有一堆奇怪警告和报错，这是因为vuex4.0及以上的版本不兼容Vue2。
+
+   - Vue 2 中 要用vuex 3 版本
+
+   - Vue 3 中 要用vuex 4 版本
+
+2. 创建`src/store/index.js `该文件 该index.js文件用于创建Vuex中最为核心的store
+
+### 求和案例
+
+#### index.js
+
+```js
+//该index.js文件用于创建Vuex中最为核心的store
+import Vue from "vue";
+import Vuex from "vuex";
+//应用Vuex插件
+Vue.use(Vuex)
+
+//actions，mutations.state都是对象
+
+//准备actions——用于响应组件中的动作
+const actions = {
+    jia(context, value) {
+        // actions ==> mutations
+        context.commit('JIA', value)
+    },
+    jiaOdd(context, value) {
+        if (context.state.sum % 2) {
+            context.commit('JIA', value)
+        }
+    },
+    jiaWait(context, value) {
+        setTimeout(() => {
+            context.commit('JIA', value)
+        }, 500)
+    }
+
+
+}
+
+//准备mutations——用于操作数据（state）
+const mutations = {
+    //mutations中操作state
+    JIA(state, value) {
+        state.sum += value
+    },
+    JIAN(state, value) {
+        state.sum -= value
+    }
+}
+
+//准备state——用于存储数据
+const state = {
+    sum: 0 //当前的和
+}
+
+export default new Vuex.Store({
+    actions,
+    mutations,
+    state
+})
+```
+
+#### Count.vue
+
+```vue
+<template>
+  <div>
+    <h2>当前求和为：{{ this.$store.state.sum }}</h2>
+    <select v-model.number="n">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+    </select>
+    <button @click="increment">+</button>
+    <button @click="decrement">-</button>
+    <button @click="incrementOdd">当前求和为奇数再加</button>
+    <button @click="incrementWait">等一等再加</button>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'MyCount',
+  data() {
+    return {
+      n: 1
+    }
+  },
+  methods: {
+    increment() {
+      //vc ===> actions
+      this.$store.dispatch('jia', this.n)
+    },
+    decrement() {
+      //vc ===> mutations  (不经过actions，直接向mutations提交)
+      this.$store.commit('JIAN', this.n)
+    },
+    incrementOdd() {
+      //vc ===> actions
+      this.$store.dispatch('jiaOdd', this.n)
+    },
+    incrementWait() {
+      this.$store.dispatch('jiaWait', this.n)
+    }
+  }
+}
+</script>
+
+<style scoped>
+button {
+  margin-left: 5px;
+}
+</style>
+```
+
+#### App.vue
+
+```vue
+<template>
+  <div>
+    <Count/>
+  </div>
+</template>
+
+<script>
+import Count from "@/components/Count";
+
+export default {
+  name: "App",
+  components: {Count},
+
+}
+</script>
+
+<style>
+</style>
+```
+
+#### main.js
+
+```js
+import Vue from 'vue'
+import App from './App'
+import store from './store/index'
+
+Vue.config.productionTip = false
+
+
+new Vue({
+    //绑定容器
+    el: '#app',
+    //将App组件放入容器中,在 index.html中
+    render: h => h(App),
+    store,
+})
+```
+
+`Actions`用来写逻辑，`Mutations`中操作` state` 来改变数据
+
+若没有网络请求或者其他业务逻辑，组件`vc `可以越过`actions`,直接利用`this.$store.commit`在`mutations`中来操作`state`
+
+### getters配置项目
+
+前言：计算属性跨组件就不能用了
+
+1. 概念：当`state`中的数据需要经过加工后再使用时，可以使用`getters`加工，相当于**全局计算属性** 
+2. 在`store.js`中追加`getters`配置
+
+#### index.js
+
+```js
+//该index.js文件用于创建Vuex中最为核心的store
+import Vue from "vue";
+import Vuex from "vuex";
+//应用Vuex插件
+Vue.use(Vuex)
+
+//actions，mutations.state都是对象
+
+//准备actions——用于响应组件中的动作
+const actions = {
+    jia(context, value) {
+        // actions ==> mutations
+        context.commit('JIA', value)
+    },
+    jiaOdd(context, value) {
+        if (context.state.sum % 2) {
+            context.commit('JIA', value)
+        }
+    },
+    jiaWait(context, value) {
+        setTimeout(() => {
+            context.commit('JIA', value)
+        }, 500)
+    }
+
+
+}
+
+//准备mutations——用于操作数据（state）
+const mutations = {
+    //mutations中操作state
+    JIA(state, value) {
+        state.sum += value
+    },
+    JIAN(state, value) {
+        state.sum -= value
+    }
+}
+
+const getters = {
+    bigSum() {
+        return state.sum * 10
+    }
+}
+
+//准备state——用于存储数据
+const state = {
+    sum: 0 //当前的和
+}
+
+export default new Vuex.Store({
+    actions,
+    mutations,
+    state,
+    getters
+})
+```
+
+#### Count.vue
+
+```vue
+<template>
+  <div>
+    <h2>当前求和为：{{ this.$store.state.sum }}</h2>
+    <h2>当前求和的十倍为：{{ $store.getters.bigSum}}</h2>
+    <select v-model.number="n">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+    </select>
+    <button @click="increment">+</button>
+    <button @click="decrement">-</button>
+    <button @click="incrementOdd">当前求和为奇数再加</button>
+    <button @click="incrementWait">等一等再加</button>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'MyCount',
+  data() {
+    return {
+      n: 1
+    }
+  },
+  methods: {
+    increment() {
+      //vc ===> actions
+      this.$store.dispatch('jia', this.n)
+    },
+    decrement() {
+      //vc ===> mutations  (不经过actions，直接向mutations提交)
+      this.$store.commit('JIAN', this.n)
+    },
+    incrementOdd() {
+      //vc ===> actions
+      this.$store.dispatch('jiaOdd', this.n)
+    },
+    incrementWait() {
+      this.$store.dispatch('jiaWait', this.n)
+    }
+  }
+}
+</script>
+
+<style scoped>
+button {
+  margin-left: 5px;
+}
+</style>
+```
+
+### 四个map方法的使用
+
+#### Count.vue
+
+```vue
+<template>
+  <div>
+    <h2>当前求和为：{{ sum }}</h2>
+    <h2>当前求和的十倍为：{{ bigSum }}</h2>
+    <select v-model.number="n">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+    </select>
+    <button @click="increment(n)">+</button>
+    <button @click="decrement(n)">-</button>
+    <button @click="incrementOdd(n)">当前求和为奇数再加</button>
+    <button @click="incrementWait(n)">等一等再加</button>
+  </div>
+</template>
+
+<script>
+import {mapState, mapGetters, mapActions, mapMutations} from 'vuex'
+
+export default {
+  name: 'MyCount',
+  data() {
+    return {
+      n: 1
+    }
+  },
+  computed: {
+    //靠程序员自己亲自去写计算属性
+    /* sum(){
+      return this.$store.state.sum
+    },
+    school(){
+      return this.$store.state.school
+    },
+    subject(){
+      return this.$store.state.subject
+    }, */
+    //借助mapState生成计算属性，从state中读取数据。（对象写法）
+    // ...mapState({he:'sum',xuexiao:'school',xueke:'subject'}),
+
+    /* ******************************************************************** */
+
+    /* bigSum(){
+      return this.$store.getters.bigSum
+    }, */
+
+    //借助mapGetters生成计算属性，从getters中读取数据。（对象写法）
+    // ...mapGetters({bigSum:'bigSum'})
+
+    ...mapState(['sum', 'school', 'subject']),
+    ...mapGetters(['bigSum'])
+  },
+  methods: {
+    // increment() {
+    //   //vc ===> actions
+    //   this.$store.dispatch('jia', this.n)
+    // },
+    // incrementOdd() {
+    //   //vc ===> actions
+    //   this.$store.dispatch('jiaOdd', this.n)
+    // },
+    // incrementWait() {
+    //   //vc ===> actions
+    //   this.$store.dispatch('jiaWait', this.n)
+    // },
+    ...mapActions({increment: 'jia',incrementOdd: 'jiaOdd', incrementWait: 'jiaWait'}),
+    // decrement() {
+    //   //vc ===> mutations  (不经过actions，直接向mutations提交)
+    //   this.$store.commit('JIAN', this.n)
+    // }
+    ...mapMutations({decrement: 'JIAN'})
+  }
+}
+</script>
+
+<style scoped>
+button {
+  margin-left: 5px;
+}
+</style>
+```
+
+#### index.js
+
+```js
+//该index.js文件用于创建Vuex中最为核心的store
+import Vue from "vue";
+import Vuex from "vuex";
+//应用Vuex插件
+Vue.use(Vuex)
+
+//actions，mutations.state都是对象
+
+//准备actions——用于响应组件中的动作
+const actions = {
+    jia(context, value) {
+        // actions ==> mutations
+        context.commit('JIA', value)
+    },
+    jiaOdd(context, value) {
+        if (context.state.sum % 2) {
+            context.commit('JIA', value)
+        }
+    },
+    jiaWait(context, value) {
+        setTimeout(() => {
+            context.commit('JIA', value)
+        }, 500)
+    }
+
+
+}
+
+//准备mutations——用于操作数据（state）
+const mutations = {
+    //mutations中操作state
+    JIA(state, value) {
+        state.sum += value
+    },
+    JIAN(state, value) {
+        state.sum -= value
+    }
+}
+
+const getters = {
+    bigSum() {
+        return state.sum * 10
+    }
+}
+
+//准备state——用于存储数据
+const state = {
+    sum: 0, //当前的和
+    school: 'NWU',
+    subject: '前端'
+}
+
+export default new Vuex.Store({
+    actions,
+    mutations,
+    state,
+    getters
+})
+```
+
+### 多组件共享数据案例
+
+效果：![image.png](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/1644055080105-d6e7d6e7-3967-433d-bb8c-b7bdbf92347b.png)
+
+#### Count.vue
+
+```vue
+<template>
+  <div>
+    <h1>当前求和为：{{ sum }}</h1>
+    <h3>当前求和放大10倍为：{{ bigSum }}</h3>
+    <h3>我在{{ school }}，学习{{ subject }}</h3>
+    <h3 style="color:red">Person组件的总人数是：{{ personList.length }}</h3>
+    <select v-model.number="n">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+    </select>
+    <button @click="increment(n)">+</button>
+    <button @click="decrement(n)">-</button>
+    <button @click="incrementOdd(n)">当前求和为奇数再加</button>
+    <button @click="incrementWait(n)">等一等再加</button>
+  </div>
+</template>
+
+<script>
+import {mapState, mapGetters, mapActions, mapMutations} from 'vuex'
+
+export default {
+  name: 'MyCount',
+  data() {
+    return {
+      n: 1
+    }
+  },
+  computed: {
+    //借助mapState生成计算属性，从state中读取数据。（数组写法）
+    ...mapState(['sum', 'school', 'subject', 'personList']),
+
+    //借助mapGetters生成计算属性，从getters中读取数据。（数组写法）
+    ...mapGetters(['bigSum'])
+  },
+  methods: {
+    // increment() {
+    //   //vc ===> actions
+    //   this.$store.dispatch('jia', this.n)
+    // },
+    // incrementOdd() {
+    //   //vc ===> actions
+    //   this.$store.dispatch('jiaOdd', this.n)
+    // },
+    // incrementWait() {
+    //   //vc ===> actions
+    //   this.$store.dispatch('jiaWait', this.n)
+    // },
+    ...mapActions({increment: 'jia', incrementOdd: 'jiaOdd', incrementWait: 'jiaWait'}),
+
+    // decrement() {
+    //   //vc ===> mutations  (不经过actions，直接向mutations提交)
+    //   this.$store.commit('JIAN', this.n)
+    // }
+    ...mapMutations({decrement: 'JIAN'})
+  }
+}
+</script>
+
+<style scoped>
+button {
+  margin-left: 5px;
+}
+</style>
+```
+
+#### Person.vue
+
+```vue
+<template>
+  <div>
+    <h1>人员列表</h1>
+    <h3 style="color:red">Count组件求和为：{{ sum }}</h3>
+    <input type="text" placeholder="请输入名字" v-model="name">
+    <button @click="add">添加</button>
+    <ul>
+      <li v-for="p in personList" :key="p.id">{{ p.name }}</li>
+    </ul>
+  </div>
+</template>
+
+<script>
+import {nanoid} from "nanoid";
+
+export default {
+  name: "MyPerson",
+  data() {
+    return {
+      name: '',
+    }
+  },
+  computed: {
+    personList() {
+      return this.$store.state.personList
+    },
+    sum() {
+      return this.$store.state.sum
+    }
+  },
+  methods: {
+    add() {
+      const personObj = {id: nanoid(), name: this.name}
+      this.$store.commit('ADD_PERSON', personObj)
+      this.name = ''
+    }
+  }
+}
+</script>
+
+<style scoped>
+
+</style>
+```
+
+#### index.js
+
+```js
+//该index.js文件用于创建Vuex中最为核心的store
+import Vue from "vue";
+import Vuex from "vuex";
+//应用Vuex插件
+Vue.use(Vuex)
+
+//actions，mutations.state都是对象
+
+//准备actions——用于响应组件中的动作
+const actions = {
+    jia(context, value) {
+        // actions ==> mutations
+        context.commit('JIA', value)
+    },
+    jiaOdd(context, value) {
+        if (context.state.sum % 2) {
+            context.commit('JIA', value)
+        }
+    },
+    jiaWait(context, value) {
+        setTimeout(() => {
+            context.commit('JIA', value)
+        }, 500)
+    }
+
+
+}
+
+//准备mutations——用于操作数据（state）
+const mutations = {
+    //mutations中操作state
+    JIA(state, value) {
+        state.sum += value
+    },
+    JIAN(state, value) {
+        state.sum -= value
+    },
+    ADD_PERSON(state,value){
+        console.log('mutations中的ADD_PERSON被调用了')
+        state.personList.unshift(value)
+    }
+}
+
+const getters = {
+    bigSum() {
+        return state.sum * 10
+    }
+}
+
+//准备state——用于存储数据
+const state = {
+    sum: 0, //当前的和
+    school: 'NWU',
+    subject: '前端',
+    personList: [
+        {id: '001', name: '张三'}
+    ]
+}
+
+export default new Vuex.Store({
+    actions,
+    mutations,
+    state,
+    getters
+})
+```
+
+#### App.vue
+
+```vue
+<template>
+  <div>
+    <Count/>
+    <hr/>
+    <Person/>
+  </div>
+</template>
+
+<script>
+import Count from "@/components/Count";
+import Person from "@/components/Person";
+
+export default {
+  name: "App",
+  components: {Count, Person},
+
+}
+
+</script>
+
+<style>
+</style>
+```
+
+#### main.js
+
+```js
+import Vue from 'vue'
+import App from './App'
+import store from './store/index'
+
+Vue.config.productionTip = false
+
+
+new Vue({
+    //绑定容器
+    el: '#app',
+    //将App组件放入容器中,在 index.html中
+    render: h => h(App),
+    store,
+})
+```
+
+### 模块化+命名空间
+
+待补充
+
+## 路由
+
+### 相关理解
+
+记得使用`npm i vue-router@3`来安装较低的版本，不然会有一堆奇怪警告和报错，这是因为vue-router 4.0及以上的版本不兼容Vue2。
+
+- Vue 2 中 要用vue-router 3 版本
+
+- Vue 3 中 要用vue-router 4 版本
+
+#### vue-router 的理解
+
+● vue的一个插件库，专门用来实现SPA应用 
+
+#### 对SPA应用的理解 
+
+1. 单页Web应用（single page web application，SPA） 
+2. 整个应用只有一个完整的页面 
+3. 点击页面中的导航链接不会刷新页面，只会做页面的局部更新 
+4. 数据需要通过ajax请求获取
+
+![img](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/1644066696036-671cb003-dfdb-4402-8114-c151d60e27e0.png)
+
+#### 路由的理解 
+
+什么是路由? a 一个路由就是一组映射关系（key - value） b key为路径，value可能是function或componen 
+
+路由分类 
+
+##### a 后端路由 
+
+- 理解：value是function，用于处理客户端提交的请求 
+- 工作过程：服务器接收到一个请求时，根据请求路径找到匹配的函数来处理请求，返回响应数据
+
+#####  b 前端路由 
+
+- 理解：value是component，用于展示页面内容 
+- 工作过程：当浏览器的路径改变时，对应的组件就会显示
+
+### 基本路由
+
+#### 步骤
+
+1. 安装`vue-router`，命令`npm i vue-router@3 `
+
+2. 应用插件`Vue.use(VueRouter) `
+
+3. 编写`router`配置项
+
+   ```js
+   
+   import VueRouter from 'vue-router'			// 引入VueRouter
+   import About from '../components/About'	// 路由组件
+   import Home from '../components/Home'		// 路由组件
+   
+   // 创建router实例对象，去管理一组一组的路由规则
+   const router = new VueRouter({
+   	routes:[
+   		{
+   			path:'/about',
+   			component:About
+   		},
+   		{
+   			path:'/home',
+   			component:Home
+   		}
+   	]
+   })
+   
+   //暴露router
+   export default router
+   ```
+
+4. 实现切换
+
+   `<router-link></router-link>`浏览器会被替换为a标签
+
+    `active-class`可配置高亮样式
+
+   ```js
+   <router-link active-class="active" to="/about">About</router-link>
+   ```
+
+5. 指定展示位 
+
+   ```vue
+   <router-view></router-view>
+   ```
+
+![image-20220618111701386](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220618111701386.png)
+
+**index.js**
+
+```js
+//该文件专门用于创建整个应用的路由
+import VueRouter from "vue-router";
+import About from "@/pages/About";
+import Home from "@/pages/Home";
+
+export default new VueRouter({
+    routes: [
+        {
+            path: '/about',
+            component: About
+        },
+        {
+            path: '/home',
+            component: Home
+        }
+    ]
+})
+```
+
+**About.vue**
+
+```vue
+<template>
+  <h2>我是About的内容</h2>
+</template>
+
+<script>
+export default {
+  name: "MyAbout"
+}
+</script>
+
+<style scoped>
+</style>
+```
+
+**Home.vue**
+
+```vue
+<template>
+  <h2>我是Home的内容</h2>
+</template>
+
+<script>
+export default {
+  name: "MyHome"
+}
+</script>
+
+<style scoped>
+</style>
+```
+
+**Banner.vue**
+
+```vue
+<template>
+  <div class="col-xs-offset-2 col-xs-8">
+    <div class="page-header"><h2>Vue Router Demo</h2></div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: "MyBanner"
+}
+</script>
+
+<style scoped>
+</style>
+```
+
+**App.vue**
+
+```vue
+<template>
+  <div>
+    <div class="row">
+      <Banner/>
+    </div>
+    <div class="row">
+      <div class="col-xs-2 col-xs-offset-2">
+        <div class="list-group">
+          <!-- 原始html中我们使用a标签实现页面的跳转 -->
+          <!--          <a class="list-group-item active" href="./about.html">About</a>-->
+          <!--          <a class="list-group-item" href="./home.html">Home</a>-->
+
+          <!-- Vue中借助router-link标签实现路由的切换 -->
+          <router-link class="list-group-item" active-class="active" to="/about">About</router-link>
+          <router-link class="list-group-item" active-class="active" to="/home">Home</router-link>
+        </div>
+      </div>
+      <div class="col-xs-6">
+        <div class="panel">
+          <div class="panel-body">
+            <!--指定路由的呈现位置-->
+            <router-view></router-view>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import Banner from "@/component/Banner";
+
+export default {
+  name: "App",
+  components: {Banner}
+}
+
+</script>
+
+<style>
+</style>
+```
+
+**main.js**
+
+```js
+import Vue from 'vue'
+import App from './App'
+import VueRouter from "vue-router";
+import router from './router/index'
+
+Vue.config.productionTip = false
+
+Vue.use(VueRouter)
+
+new Vue({
+    //绑定容器
+    el: '#app',
+    //将App组件放入容器中,在 index.html中
+    render: h => h(App),
+    router: router
+})
+```
+
+#### 注意事项
+
+1. 路由组件通常存放在pages文件夹，一般组件通常存放在components文件夹 ，比如上一节的案例就可以修改为 
+
+   src/pages/Home.vue 
+
+   src/pages/About.vue 
+
+   src/router/index.js 
+
+   src/components/Banner.vue 
+
+   src/App.vue
+
+2. 通过切换，“隐藏”了的路由组件，**默认是被销毁掉的，需要的时候再去挂载** 
+
+3. 每个组件都有自己的$route属性，里面存储着自己的路由信息 
+
+4. 整个应用只有一个router，可以通过组件的$router属性获取到
+
+### 嵌套路由
+
+1. 配置路由规则，使用`children`配置项
+
+   ```js
+   routes:[
+   	{
+   		path:'/about',
+   		component:About,
+   	},
+   	{
+   		path:'/home',
+   		component:Home,
+   		children:[ 					// 通过children配置子级路由
+   			{
+   				path:'news', 		// 此处一定不要带斜杠，写成 /news
+   				component:News
+   			},
+   			{
+   				path:'message',	// 此处一定不要写成 /message
+   				component:Message
+   			}
+   		]
+   	}
+   ]
+   ```
+
+2. 跳转（要先完整路径）
+
+```vue
+<router-link to="/home/news">News</router-link>
+```
+
+![image.png](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/1644072950709-6a65f3b3-3ab0-4d65-8dae-b2dbf87df440.png)
+
+#### Home.vue
+
+```vue
+<template>
+  <div>
+    <h2>Home组件内容</h2>
+    <div>
+      <ul class="nav nav-tabs">
+        <li>
+          <router-link class="list-group-item" active-class="active" to="/home/news">News</router-link>
+        </li>
+        <li>
+          <router-link class="list-group-item " active-class="active" to="/home/message">Message</router-link>
+        </li>
+      </ul>
+      <router-view></router-view>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: "MyHome"
+}
+</script>
+
+<style scoped>
+</style>
+```
+
+#### Message.vue
+
+```vue
+<template>
+  <div>
+    <ul>
+      <li>
+        <a href="/message1">message001</a>&nbsp;&nbsp;
+      </li>
+      <li>
+        <a href="/message2">message002</a>&nbsp;&nbsp;
+      </li>
+      <li>
+        <a href="/message/3">message003</a>&nbsp;&nbsp;
+      </li>
+    </ul>
+  </div>
+</template>
+
+<script>
+export default {
+  name: "Message"
+}
+</script>
+
+<style scoped>
+
+</style>
+```
+
+#### News.vue
+
+```vue
+<template>
+  <ul>
+    <li>news001</li>
+    <li>news002</li>
+    <li>news003</li>
+  </ul>
+</template>
+
+<script>
+export default {
+  name: "News"
+}
+</script>
+
+<style scoped>
+
+</style>
+```
+
+### 路由的query参数
+
+![image.png](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/1644075915640-af4707c7-dfc5-4dd8-b82b-0d4474d70e4b.png)
+
+给路由组件传递参数，用的是一个组件，但数据不一样，所以呈现的就不一样
+
+1. 传递参数
+
+   ```vue
+   <!-- 跳转并携带query参数，to的字符串写法 -->
+   <router-link :to="`/home/message/detail?id=${m.id}&title=${m.title}`">跳转</router-link>
+   				
+   <!-- 跳转并携带query参数，to的对象写法（推荐） -->
+   <router-link 
+   	:to="{
+   		path:'/home/message/detail',
+   		query:{
+   		   id: m.id,
+          title: m.title
+   		}
+   	}"
+   >跳转</router-link>
+   ```
+
+2. 接收参数
+
+```
+$route.query.id
+$route.query.title
+```
+
+#### Detail.vue
+
+```vue
+<template>
+  <ul>
+    <li>消息编号：{{ $route.query.id }}</li>
+    <li>消息标题：{{ $route.query.title }}</li>
+  </ul>
+</template>
+
+<script>
+export default {
+  name: "Detail"
+}
+</script>
+
+<style scoped>
+
+</style>
+```
+
+#### Message.vue
+
+```vue
+<template>
+  <div>
+    <ul>
+      <li v-for="m in messageList" :key="m.id">
+        <!-- 跳转路由并携带query参数，to的字符串写法 -->
+        <!-- <router-link :to="`/home/message/detail?id=${m.id}&title=${m.title}`">{{m.title}}</router-link>&nbsp;&nbsp; -->
+
+        <!-- 跳转路由并携带query参数，to的对象写法 -->
+        <router-link :to="{
+     path:'/home/message/detail',
+     query:{
+      id:m.id,
+      title:m.title
+     }
+    }">
+          {{ m.title }}
+        </router-link>
+      </li>
+    </ul>
+    <hr>
+    <router-view></router-view>
+  </div>
+</template>
+
+<script>
+export default {
+  name: "Message",
+  data() {
+    return {
+      messageList: [
+        {id: '001', title: '消息001'},
+        {id: '002', title: '消息002'},
+        {id: '003', title: '消息003'}
+      ]
+    }
+  },
+}
+</script>
+
+<style scoped>
+
+</style>
+```
+
+#### index.js
+
+```js
+//该文件专门用于创建整个应用的路由
+import VueRouter from "vue-router";
+import About from "@/pages/About";
+import Home from "@/pages/Home";
+import News from "@/pages/News";
+import Message from "@/pages/Message";
+import Detail from "@/pages/Detail";
+
+export default new VueRouter({
+    routes: [
+        {
+            //一级路由加 '/'
+            path: '/about',
+            component: About
+        },
+        {
+            path: '/home',
+            component: Home,
+            children: [
+                //子路由不加 '/'
+                {
+                    path: 'news',
+                    component: News
+                },
+                {
+                    path: 'message',
+                    component: Message,
+                    children: [
+                        {
+                            path: 'detail',
+                            component: Detail
+                        }
+                    ]
+                },
+            ]
+        }
+    ]
+})
+```
+
+#### App.vue
+
+```vue
+<template>
+  <div>
+    <div class="row">
+      <Banner/>
+    </div>
+    <div class="row">
+      <div class="col-xs-2 col-xs-offset-2">
+        <div class="list-group">
+          <!-- 原始html中我们使用a标签实现页面的跳转 -->
+          <!--          <a class="list-group-item active" href="./about.html">About</a>-->
+          <!--          <a class="list-group-item" href="./home.html">Home</a>-->
+
+          <!-- Vue中借助router-link标签实现路由的切换 -->
+          <router-link class="list-group-item" active-class="active" to="/about">About</router-link>
+          <router-link class="list-group-item" active-class="active" to="/home">Home</router-link>
+        </div>
+      </div>
+      <div class="col-xs-6">
+        <div class="panel">
+          <div class="panel-body">
+            <!--指定路由的呈现位置-->
+            <router-view></router-view>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import Banner from "@/component/Banner";
+
+
+export default {
+  name: "App",
+  components: {Banner}
+
+}
+
+</script>
+
+<style>
+</style>
+```
+
+### 命名路由
+
+作用：可以简化路由的跳转
+
+1. 给路由命名
+2. 简化跳转
+
+```js
+{
+	path:'/demo',
+	component:Demo,
+	children:[
+		{
+			path:'test',
+			component:Test,
+			children:[
+				{
+          name:'hello' // 给路由命名
+					path:'welcome',
+					component:Hello,
+				}
+			]
+		}
+	]
+}
+```
+
+```vue
+<!--简化前，需要写完整的路径 -->
+<router-link to="/demo/test/welcome">跳转</router-link>
+
+<!--简化后，直接通过名字跳转 -->
+<router-link :to="{name:'hello'}">跳转</router-link>
+
+<!--简化写法配合传递参数 -->
+<router-link 
+	:to="{
+		name:'hello',
+		query:{
+		    id:666,
+        title:'你好'
+		}
+	}"
+>跳转</router-link>
+```
+
+### 路由的params参数
+
+1. 配置路由，声明接受params参数
+
+   ```js
+   {
+   	path:'/home',
+   	component:Home,
+   	children:[
+   		{
+   			path:'news',
+   			component:News
+   		},
+   		{
+   			component:Message,
+   			children:[
+   				{
+   					name:'xiangqing',
+   					path:'detail/:id/:title', // 🔴使用占位符声明接收params参数
+   					component:Detail
+   				}
+   			]
+   		}
+   	]
+   }
+   ```
+
+2. 传递参数
+
+   🔥🔥🔥**特别注意：路由携带params参数时，若使用to的对象写法，则不能使用path配置项，必须使用name配置！**
+
+```vue
+<!-- 跳转并携带params参数，to的字符串写法 -->
+<router-link :to="/home/message/detail/666/你好">跳转</router-link>
+				
+<!-- 跳转并携带params参数，to的对象写法 -->
+<router-link 
+	:to="{
+		name:'xiangqing',
+		params:{
+		   id:666,
+       title:'你好'
+		}
+	}"
+>跳转</router-link>
+```
+
+### 路由的props配置
+
+待补充
+
+### 路由replace
+
+待补充
+
+### 编程式导航
+
+待补充
+
+### 缓存路由组件
+
+待补充
+
+## Vue UI组件库
+
+
+
+
+
+
+
+
+
