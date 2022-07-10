@@ -191,7 +191,7 @@ hashCode() 定义在JDK的Object.java中，这就意味着Java中的任何类都
 
 ### **不会创建“类对应的散列表”**
 
-这里所说的“不会创建类对应的散列表”是说：我们不会在HashSet, Hashtable, HashMap等等这些本质是散列表的数据结构中，用到该类。例如，**不会创建该类的HashSet集合**。
+这里所说的“不会创建类对应的散列表”是说：我们不会在HashSet, Hashtable, HashMa p等等这些本质是散列表的数据结构中，用到该类。例如，**不会创建该类的HashSet集合**。
 
 在这种情况下，该类的“hashCode() 和 equals() ”没有半毛钱关系的！
 
