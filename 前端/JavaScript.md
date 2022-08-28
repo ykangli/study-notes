@@ -102,4 +102,230 @@ Project：PIG GAME
 - **设备 API**基本上是以对网络应用程序有用的方式操作和检索现代设备硬件中的数据的 API。我们已经讨论过访问设备位置数据的地理定位 API，因此您可以在地图上标注您的位置。其他示例还包括通过系统通知（参见[Notifications API](https://developer.mozilla.org/zh-CN/docs/Web/API/Notifications_API)）或振动硬件（参见[Vibration API](https://developer.mozilla.org/zh-CN/docs/Web/API/Vibration_API)）告诉用户 Web 应用程序有用的更新可用。
 - **客户端存储 API**在 Web 浏览器中的使用变得越来越普遍 - 如果您想创建一个应用程序来保存页面加载之间的状态，甚至让设备在处于脱机状态时可用，那么在客户端存储数据将会是非常有用的。例如使用[Web Storage API](https://developer.mozilla.org/zh-CN/docs/Web/API/Web_Storage_API)的简单的键 - 值存储以及使用[IndexedDB API](https://developer.mozilla.org/zh-CN/docs/Web/API/IndexedDB_API)的更复杂的表格数据存储。
 
-90看完，91开始看  
+### Scope And Scope Chain
+
+![image-20220717173821289](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220717173821289.png)
+
+![image-20220717174451935](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220717174451935.png)
+
+紫色是Block Scope，黄色是Function Scope，两个是平级关系。
+
+他们之间不能互相访问
+
+let 和 const是块变量，只能在其范围内使用
+
+![image-20220717175407615](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220717175407615.png)
+
+str 是Block Scope，出了这个范围使用就会报错
+
+换成 var就可以，var是Function Scope的。
+
+![image-20220717180216142](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220717180216142.png)
+
+![image-20220717180947460](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220717180947460.png)
+
+### this
+
+![image-20220717181400221](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220717181400221.png)
+
+```js
+'use strict';
+
+// // 这里的this指的是window object
+// console.log(this);
+
+
+// // 在严格模式下，this是undefined；在非严格模式下，this是window object
+// const calAge = function (birthYear) {
+//     console.log(this);
+//     return 2022 - birthYear;
+// }
+
+// calAge(1990);
+
+// // this是window object
+// const calAgeArrow = (birthYear) => {
+//     {
+//         console.log(this);
+//         return 2022 - birthYear;
+//     }
+
+//     calAgeArrow(1996);
+// }
+
+
+// const jonas = {
+//     year: 1990,
+//     // 这里的this指的是jonas object
+//     calAge: function () {
+//         console.log(this);
+//         return 2022 - this.year;
+//     },
+//     // 这里的this指的是window object
+//     calAgeArrow: () => {
+//         console.log(this);
+//     }
+// }
+
+// jonas.calAge();
+// jonas.calAgeArrow();
+
+
+// //this指向调用该方法的对象，这里this指的是allen object,而不是jonas object
+// const allen = {
+//     year: 2000,
+// }
+// allen.calAge = jonas.calAge;
+// allen.calAge();
+
+
+// //这里是找不到year的，这里的this指的是f函数，它没有year属性
+// const f = jonas.calAge;
+// f();
+
+
+//普通函数和箭头函数的用法
+const jonas = {
+    year: 1990,
+    // 这里的this指的是jonas object
+    calAge: function () {
+        console.log(this);
+        console.log(2022 - this.year);
+
+        // ❌ 这里的this指的是 isMillenial function,没有year属性
+        // const isMillenial = function () {
+        //     console.log(this.year >= 1981 && this.year <= 1996);
+        // }
+        // isMillenial();
+
+        // solution 1: bind this to jonas object
+        // const self = this;
+        // const isMillenial = () => {
+        //     console.log(self.year >= 1981 && self.year <= 1996);
+        // }
+        // isMillenial();
+
+        // solution 2: use arrow function  箭头函数向上调用
+        const isMillenial = () => {
+            console.log(this.year >= 1981 && this.year <= 1996);
+        }
+        isMillenial();
+
+    }
+}
+
+jonas.calAge();
+```
+
+### Array
+
+...  扩展运算符，除了适用于数组，还适用于所有可迭代的（iterables） => Arrayy Set String， 没有数组
+
+不能用取值运算符中 【 `` 】
+
+### The call and apply Methods
+
+call()、apply()、bind() 都是用来重定义 this 这个对象的！
+
+call 、bind 、 apply 这三个函数的第一个参数都是 this 的指向对象，第二个参数差别就来了：
+
+call 的参数是直接放进去的，第二第三第 n 个参数全都用逗号分隔，直接放到后面 **obj.myFun.call(db,'成都', ... ,'string' )**。
+
+apply 的所有参数都必须放在一个数组里面传进去 **obj.myFun.apply(db,['成都', ..., 'string' ])**。
+
+bind 除了返回是函数以外，它 的参数和 call 一样。
+
+当然，三者的参数不限定是 string 类型，允许是各种类型，包括函数 、 object 等等！
+
+```js
+'use strict';
+
+const lufthansa = {
+    airline: 'Lufthansa',
+    iataCode: 'LH',
+    booking: [],
+    book(flightName, name) {
+        console.log(`${name} booked a seat on ${this.airline} flight ${this.iataCode} ${flightName}`);
+        this.booking.push(`${this.iataCode} ${flightName}`);
+    }
+}
+
+lufthansa.book('LH1234', 'John');
+lufthansa.book('LH1235', 'Jane');
+
+const eurowrings = {
+    airline: 'Eurowings',
+    iataCode: 'EW',
+    booking: [],
+}
+
+const book = lufthansa.book;
+// do not works 
+// book('LH1236', 'Jack');
+
+lufthansa.book.call(eurowrings, 'CN666', 'Allen');
+
+lufthansa.book.apply(eurowrings, ['CN666', 'Allen']);
+
+//bind返回的是一个新的函数，必须加'（）'调用才能执行
+lufthansa.book.bind(eurowrings, 'CN666', 'Allen')();
+```
+
+### Immediately Invoked Function Expressions
+
+🎉🎉async / await中会使用  ==> **异步调用**
+
+
+
+
+
+### 闭包
+
+ 
+
+## DOM
+
+![image-20220718121625201](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220718121625201.png)
+
+![image-20220718121950819](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220718121950819.png)
+
+## Events
+
+HTML 事件是发生在 HTML 元素上的事情。当在 HTML 页面中使用 JavaScript 时， JavaScript 可以触发这些事件。
+
+[事件参考](https://developer.mozilla.org/zh-CN/docs/Web/Events)
+
+```js
+const click = function (e) {
+  alert('Xixixiixix!');
+}
+
+document.querySelector('h1').addEventListener('click', click);
+setTimeout(() => {
+  document.querySelector('h1').removeEventListener('click', click);
+}, 3000);
+```
+
+### Bubbling and Capturing
+
+![image-20220718160614689](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220718160614689.png)
+
+事件触发在子元素上，但父元素也会触发（冒泡到父元素）
+
+![image-20220718161240319](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220718161240319.png)
+
+可以使用 `e.stopPropagation()`来停止向上传播
+
+## 遍历DOM
+
+
+
+## prototype   对象原型
+
+通过原型这种机制，JavaScript 中的对象从其他对象继承功能特性；这种继承机制与经典的面向对象编程语言的继承机制不同。
+
+JavaScript 常被描述为一种**基于原型的语言 (prototype-based language)**——每个对象拥有一个**原型对象**，对象以其原型为模板、从原型继承方法和属性。原型对象也可能拥有原型，并从中继承方法和属性，一层一层、以此类推。这种关系常被称为**原型链 (prototype chain)**，它解释了为何一个对象会拥有定义在其他对象中的属性和方法。
+
+准确地说，这些属性和方法定义在 Object 的构造器函数 (constructor functions) 之上的`prototype`属性上，而非对象实例本身。
+
+在传统的 OOP 中，首先定义“类”，此后创建对象实例时，类中定义的所有属性和方法都被复制到实例中。在 JavaScript 中并不如此复制——而是在对象实例和它的构造器之间建立一个链接（它是__proto__属性，是从构造函数的`prototype`属性派生的），之后通过上溯原型链，在构造器中找到这些属性和方法。

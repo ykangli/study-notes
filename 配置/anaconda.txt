@@ -1,0 +1,10 @@
+conda create --name envname
+
+# 指定python版本
+conda create -n envname python=3.6
+# 指定包
+conda create -n envname scipy
+# 指定包版本
+conda create -n envname scipy=0.15.0
+# 指定python版本,以及多个包
+conda create -n envname python=3.6 scipy=0.15.0

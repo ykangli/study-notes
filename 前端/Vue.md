@@ -2012,6 +2012,8 @@ v-once指令：
 
 ### 生命周期
 
+![实例的生命周期](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/lifecycle.svg)
+
 每个 Vue 实例在被创建时都要经过一系列的初始化过程——例如，需要设置数据监听、编译模板、将实例挂载到 DOM 并在数据变化时更新 DOM 等。同时在这个过程中也会运行一些叫做**生命周期钩子**的函数，这**给了用户在不同阶段添加自己的代码的机会**。
 
 8 个 生命周期函数，4 对
@@ -2329,7 +2331,7 @@ vm中所有的：data、methods、指令等都处于可用状态
             备注：使用template可以配置组件结构。
 
         二、如何注册组件？
-            1.局部注册：靠new Vue的时候传入components选项
+            1.局部注册：靠new Vue的时候传入components选项     
             2.全局注册：靠Vue.component('组件名',组件)
 
         三、编写组件标签：
@@ -2962,6 +2964,10 @@ export default {
 
 ## 使用Vue CLI 脚手架
 
+![image-20220718212327363](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220718212327363.png)
+
+![image-20220718212533510](C:\Users\Li\AppData\Roaming\Typora\typora-user-images\image-20220718212533510.png)
+
 ### 初始化脚手架
 
 #### 安装启动
@@ -3405,6 +3411,126 @@ index.html
   </body>
 </html>
 ```
+
+#### 利用props传递 router中的 params参数
+
+##### main.js
+
+```js
+import { createApp } from 'vue';
+import { createRouter, createWebHistory } from 'vue-router';
+
+import App from './App.vue';
+import TeamsList from '@/components/teams/TeamsList'
+import UsersList from '@/components/users/UsersList'
+import TeamMembers from '@/components/teams/TeamMembers'
+
+const app = createApp(App)
+
+const router = createRouter({
+    history: createWebHistory(),
+    routes: [
+        {
+            path: '/teams',
+            component: TeamsList
+        },
+        {
+            path: '/users',
+            component: UsersList
+        },
+        {
+            // 子组件为TeamMembers, teamId为传递给的props  props:true 告诉vue teamId作为props传递给子组件TeamMembers
+            path: '/teams/:teamId',
+            component: TeamMembers,
+            props: true
+        },
+    ]
+})
+
+app.use(router)
+app.mount('#app');
+
+```
+
+##### TeamMembers.vue
+
+```vue
+<template>
+  <section>
+    <h2>{{ teamName }}</h2>
+    <ul>
+      <user-item
+        v-for="member in members"
+        :key="member.id"
+        :name="member.fullName"
+        :role="member.role"
+      ></user-item>
+    </ul>
+    <router-link to="/teams/t3">GO to team3</router-link>
+  </section>
+</template>
+
+<script>
+import UserItem from '../users/UserItem.vue';
+
+export default {
+  inject: ['teams', 'users'],
+  components: {
+    UserItem,
+  },
+  props: ['teamId'],
+  data() {
+    return {
+      teamName: '',
+      members: [],
+    };
+  },
+  methods: {
+    loadTeamMembers(teamId) {
+      const selectedTeam = this.teams.find((team) => team.id === teamId);
+      const members = selectedTeam.members;
+      const slectedMembers = [];
+      for (const member of members) {
+        const selectedMember = this.users.find((user) => user.id === member);
+        slectedMembers.push(selectedMember);
+      }
+      this.teamName = selectedTeam.name;
+      this.members = slectedMembers;
+    },
+  },
+  created() {
+    this.loadTeamMembers(this.teamId);
+  },
+  watch: {
+    teamId(newId) {
+      this.loadTeamMembers(newId);
+    },
+  },
+};
+</script>
+
+<style scoped>
+section {
+  margin: 2rem auto;
+  max-width: 40rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
+  padding: 1rem;
+  border-radius: 12px;
+}
+
+h2 {
+  margin: 0.5rem 0;
+}
+
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+</style>
+```
+
+
 
 ### mixin
 
@@ -4322,10 +4448,7 @@ export default {
         <MyList :todos="todos" :checkTodo="checkTodo" :deleteTodo="deleteTodo"/>
         <MyFooter :todos="todos" :checkAllTodo="checkAllTodo" :clearAllTodo="clearAllTodo"/>
       </div>
-      '
-
-
-    </div>
+     </div>
   </div>
 
 </template>
@@ -5869,7 +5992,17 @@ module.exports = {
 
 待补充
 
+## 模拟后端
 
+利用`firebase`   https://firebase.google.com/
+
+![image-20220719150739288](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220719150739288.png)
+
+![image-20220719150804797](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220719150804797.png)
+
+![image-20220719150900673](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220719150900673.png)
+
+![image-20220719150926871](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220719150926871.png)
 
 
 
@@ -5877,7 +6010,37 @@ module.exports = {
 
 ### Vuex是什么
 
+<img src="https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220720120427268.png" alt="image-20220720120427268" style="zoom:50%;" />
+
+<img src="https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220720120659628.png" alt="image-20220720120659628" style="zoom:50%;" />
+
 - Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采用集中式存储管理应用的所有组件的状态，并以相应的规则保证状态以一种可预测的方式发生变化。
+
+  状态自管理应用包含以下几个部分：
+
+  - **状态**，驱动应用的数据源；
+
+  - **视图**，以声明方式将**状态**映射到视图；
+
+  - **操作**，响应在**视图**上的用户输入导致的状态变化。
+
+    以下是一个表示“单向数据流”理念的简单示意：
+
+    <img src="https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/flow.png" alt="img" style="zoom: 50%;" />
+
+    但是，当我们的应用遇到**多个组件共享状态**时，**单向数据流的简洁性很容易被破坏**：
+
+    - 多个视图依赖于同一状态。
+    - 来自不同视图的行为需要变更同一状态。
+
+    对于问题一，传参的方法对于多层嵌套的组件将会非常繁琐，并且对于兄弟组件间的状态传递无能为力。对于问题二，我们经常会采用父子组件直接引用或者通过事件来变更和同步状态的多份拷贝。以上的这些模式非常脆弱，通常会导致无法维护的代码。
+
+    因此，我们为什么不把组件的共享状态抽取出来，以一个全局单例模式管理呢？在这种模式下，我们的组件树构成了一个巨大的“视图”，不管在树的哪个位置，任何组件都能获取状态或者触发行为！
+
+    通过定义和隔离状态管理中的各种概念并通过强制规则维持视图和状态间的独立性，我们的代码将会变得更结构化且易维护。
+
+    这就是 Vuex 背后的基本思想，
+
 - 专门在Vue中实现集中式状态（数据）管理的一个**Vue插件**，对Vue应用中多个组件的共享状态进行集中式的管理（读/写），也是**一种组件间通信的方式**，且**适用于任意组件间通信**
 
 ![image-20220613214246022](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220613214246022.png)
@@ -5892,6 +6055,41 @@ module.exports = {
 ### **Vuex工作原理图**
 
 ![vuex](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/vuex.png)
+
+### store
+
+在vue中，store用于管理状态、共享数据以及在各个组件之间管理外部状态，store是vuex应用的核心，也就是一个**容器**，包含着应用中大部分的状态，更改store中的状态唯一方法是提交mutation。
+
+一个app就一个 store， 它就像一个仓库，放着各组件都可以使用的state
+
+### state
+
+<img src="https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220720160131142.png" alt="image-20220720160131142" style="zoom: 67%;" />
+
+官网 ： 
+
+Vuex uses a **single state tree** - that is, this single object contains all your application level state and serves as the "single source of truth." This also means usually you will have only one store for each application. A single state tree makes it straightforward to locate a specific piece of state, and allows us to easily take snapshots of the current app state for debugging purposes.
+
+The single state tree does not conflict with modularity - in later chapters we will discuss how to split your state and mutations into sub modules.
+
+The data you store in Vuex follows the same rules as the `data` in a Vue instance, ie the state object must be plain. **See also:** [Vue#data](https://v3.vuejs.org/api/options-data.html#data-2).
+
+- state 表示了 store 中的状态，类似于 vue 实例中的 data 属性。
+- 每个应用将仅仅包含一个 store 实例。
+
+### Mutations
+
+![image-20220720154802809](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220720154802809.png)
+
+为什么需要mutation，因为 使用 this.$store.xxx 的方式来改变 state的方式不统一，我们可能有很多地方要使用。
+
+### getters
+
+对 store中的 state进行加工，然后再用（全局可用）
+
+### actions
+
+可能 dispatch（'jia', ???）  不知道这个参数是多少，需要向后端发ajax请求要，那么这时候就只能用actions。当然在已经知道？？？是多少的情况下，vue也允许直接利用mutations来提交改变s'ta
 
 ### 搭建Vuex环境
 
@@ -6232,8 +6430,7 @@ export default {
     }, */
 
     //借助mapGetters生成计算属性，从getters中读取数据。（对象写法）
-    // ...mapGetters({bigSum:'bigSum'})
-
+    // ...mapGetters({bigSum:'bigSum'})    store里有的
     ...mapState(['sum', 'school', 'subject']),
     ...mapGetters(['bigSum'])
   },
@@ -6478,8 +6675,6 @@ const actions = {
             context.commit('JIA', value)
         }, 500)
     }
-
-
 }
 
 //准备mutations——用于操作数据（state）
@@ -6568,6 +6763,8 @@ new Vue({
 ```
 
 ### 模块化+命名空间
+
+![image-20220721105733638](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220721105733638.png)
 
 待补充
 
@@ -6959,7 +7156,7 @@ export default {
    		path:'/home/message/detail',
    		query:{
    		   id: m.id,
-          title: m.title
+          	    title: m.title
    		}
    	}"
    >跳转</router-link>
@@ -7148,7 +7345,7 @@ export default {
 			component:Test,
 			children:[
 				{
-          name:'hello' // 给路由命名
+         			 name:'hello' // 给路由命名
 					path:'welcome',
 					component:Hello,
 				}
@@ -7240,13 +7437,645 @@ export default {
 
 待补充
 
+
+
+### Redircting and Catch All routes
+
+```js
+{
+            path: '/:notFound(.*)',
+            component: TeamsList
+        },
+```
+
+### router-view
+
+**router-view** 当你的路由**path 与访问的地址相符时**，会**将指定的组件**替换该 router-view
+
+
+
+### Rendering Multiple Routes with Named Router Views
+
+一个路由，多个组件
+
+![image-20220719214523126](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220719214523126.png)
+
+#### main.js
+
+```js
+import { createApp } from 'vue';
+import { createRouter, createWebHistory } from 'vue-router';
+
+import App from './App.vue';
+import TeamsList from '@/components/teams/TeamsList'
+import UsersList from '@/components/users/UsersList'
+import TeamMembers from '@/components/teams/TeamMembers'
+import NotFound from '@/components/nav/NotFound'
+import TeamsFooter from '@/components/teams/TeamsFooter'
+import UsersFooter from '@/components/users/UsersFooter'
+
+
+const app = createApp(App)
+
+const router = createRouter({
+    history: createWebHistory(),
+    routes: [
+        // {
+        //     path: '/',
+        //     component: TeamsList
+        // },
+        // {
+        //     path: '/',
+        //     redirect: '/teams'
+        // },
+        {
+            path: '/teams',
+            components: {
+                default: TeamsList,
+                footer: TeamsFooter
+            },
+            alias: '/',
+            children: [
+                {
+                    path: ':teamId',
+                    component: TeamMembers,
+                    props: true
+                }
+            ]
+        },
+        {
+            path: '/users',
+            components: {
+                default: UsersList,
+                footer: UsersFooter
+            }
+        },
+        // {
+        //     // 子组件为TeamMembers, teamId为传递给的props  props:true 告诉vue teamId作为props传递给子组件TeamMembers
+        //     path: '/teams/:teamId',
+        //     component: TeamMembers,
+        //     props: true
+        // },
+        {
+            path: '/:notFound(.*)',
+            component: NotFound
+        },
+    ]
+})
+
+app.use(router)
+app.mount('#app');
+```
+
+#### App.vue
+
+```vue
+<template>
+  <the-navigation></the-navigation>
+  <main>
+    <router-view></router-view>
+  </main>
+  <footer>
+    <router-view name="footer"></router-view>
+  </footer>
+</template>
+
+<script>
+import TheNavigation from './components/nav/TheNavigation.vue';
+
+export default {
+  components: {
+    TheNavigation,
+  },
+  data() {
+    return {
+      teams: [
+        { id: 't1', name: 'Frontend Engineers', members: ['u1', 'u2'] },
+        { id: 't2', name: 'Backend Engineers', members: ['u1', 'u2', 'u3'] },
+        { id: 't3', name: 'Client Consulting', members: ['u4', 'u5'] },
+      ],
+      users: [
+        { id: 'u1', fullName: 'Max Schwarz', role: 'Engineer' },
+        { id: 'u2', fullName: 'Praveen Kumar', role: 'Engineer' },
+        { id: 'u3', fullName: 'Julie Jones', role: 'Engineer' },
+        { id: 'u4', fullName: 'Alex Blackfield', role: 'Consultant' },
+        { id: 'u5', fullName: 'Marie Smith', role: 'Consultant' },
+      ],
+    };
+  },
+  provide() {
+    return {
+      teams: this.teams,
+      users: this.users,
+    };
+  },
+};
+</script>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: sans-serif;
+}
+
+body {
+  margin: 0;
+}
+</style>
+```
+
+### 滚动
+
+#### main.js
+
+```js
+import { createApp } from 'vue';
+import { createRouter, createWebHistory } from 'vue-router';
+
+import App from './App.vue';
+import TeamsList from '@/components/teams/TeamsList'
+import UsersList from '@/components/users/UsersList'
+import TeamMembers from '@/components/teams/TeamMembers'
+import NotFound from '@/components/nav/NotFound'
+import TeamsFooter from '@/components/teams/TeamsFooter'
+import UsersFooter from '@/components/users/UsersFooter'
+
+
+const app = createApp(App)
+
+const router = createRouter({
+    history: createWebHistory(),
+    routes: [
+        // {
+        //     path: '/',
+        //     component: TeamsList
+        // },
+        // {
+        //     path: '/',
+        //     redirect: '/teams'
+        // },
+        {
+            path: '/teams',
+            components: {
+                default: TeamsList,
+                footer: TeamsFooter
+            },
+            alias: '/',
+            children: [
+                {
+                    path: ':teamId',
+                    component: TeamMembers,
+                    props: true
+                }
+            ]
+        },
+        {
+            path: '/users',
+            components: {
+                default: UsersList,
+                footer: UsersFooter
+            }
+        },
+        // {
+        //     // 子组件为TeamMembers, teamId为传递给的props  props:true 告诉vue teamId作为props传递给子组件TeamMembers
+        //     path: '/teams/:teamId',
+        //     component: TeamMembers,
+        //     props: true
+        // },
+        {
+            path: '/:notFound(.*)',
+            component: NotFound
+        },
+    ],
+    scrollBehavior(to, from, savedPosition) {
+        console.log(to, from, savedPosition);
+        if (savedPosition) {
+            return savedPosition
+        }
+        return { top: 0, left: 0 }
+    }
+})
+
+app.use(router)
+app.mount('#app');
+
+```
+
+`scrollBehavior` 函数接收 `to`和` from` 路由对象，如 [Navigation Guards](https://router.vuejs.org/zh/guide/advanced/navigation-guards.html)。第三个参数 `savedPosition`，只有当这是一个 `popstate` 导航时才可用（由浏览器的后退/前进按钮触发）。
+
+### 导航守卫
+
+可用来适配权限  不同权限，显示不同导航  身份验证
+
+#### 全局前置守卫
+
+使用 `router.beforeEach` 注册一个全局前置守卫：
+
+##### main.js
+
+```js
+import { createApp } from 'vue';
+import { createRouter, createWebHistory } from 'vue-router';
+
+import App from './App.vue';
+import TeamsList from '@/components/teams/TeamsList'
+import UsersList from '@/components/users/UsersList'
+import TeamMembers from '@/components/teams/TeamMembers'
+import NotFound from '@/components/nav/NotFound'
+import TeamsFooter from '@/components/teams/TeamsFooter'
+import UsersFooter from '@/components/users/UsersFooter'
+
+
+const app = createApp(App)
+
+const router = createRouter({
+    history: createWebHistory(),
+    routes: [
+        // {
+        //     path: '/',
+        //     component: TeamsList
+        // },
+        // {
+        //     path: '/',
+        //     redirect: '/teams'
+        // },
+        {
+            path: '/teams',
+            components: {
+                default: TeamsList,
+                footer: TeamsFooter
+            },
+            alias: '/',
+            children: [
+                {
+                    name: 'team-members',
+                    path: ':teamId',
+                    component: TeamMembers,
+                    props: true
+                }
+            ]
+        },
+        {
+            path: '/users',
+            components: {
+                default: UsersList,
+                footer: UsersFooter
+            }
+        },
+        // {
+        //     // 子组件为TeamMembers, teamId为传递给的props  props:true 告诉vue teamId作为props传递给子组件TeamMembers
+        //     path: '/teams/:teamId',
+        //     component: TeamMembers,
+        //     props: true
+        // },
+        {
+            path: '/:notFound(.*)',
+            component: NotFound
+        },
+    ],
+    // 下划线参数表示不使用该参数
+    scrollBehavior(_, _2, savedPosition) {
+        if (savedPosition) {
+            return savedPosition
+        }
+        return { top: 0, left: 0 }
+    }
+})
+
+app.use(router)
+app.mount('#app');
+
+// 全局守卫
+router.beforeEach((to, from, next) => {
+    console.log(to)
+    if (to.path === '/testauth') {
+        next({
+            name: 'team-members',
+            params: {
+                teamId: 't2'
+            }
+        })
+    } else {
+        next()
+    }
+})
+```
+
+#### 路由独享的守卫
+
+可以直接在路由配置上定义 `beforeEnter` 守卫：
+
+```js
+const routes = [
+  {
+    path: '/users/:id',
+    component: UserDetails,
+    beforeEnter: (to, from) => {
+      // reject the navigation
+      return false
+    },
+  },
+]
+```
+
+`beforeEnter` 守卫 **只在进入路由时触发**，不会在 `params`、`query` 或 `hash` 改变时触发。例如，从 `/users/2` 进入到 `/users/3` 或者从 `/users/2#info` 进入到 `/users/2#projects`。它们只有在 **从一个不同的** 路由导航时，才会被触发。
+
+#### 组件内的守卫
+
+- `beforeRouteEnter`
+- `beforeRouteUpdate`
+- `beforeRouteLeave`
+
+1. `beforeRouteLeave`可用来当用户进行 router 切换时 提示消息（防止误点击而没有保存数据）
+
+Users.vue
+
+```vue
+<template>
+  <button @click="savaChanges">Save Changes</button>
+  <ul>
+    <user-item
+      v-for="user in users"
+      :key="user.id"
+      :name="user.fullName"
+      :role="user.role"
+    ></user-item>
+  </ul>
+</template>
+
+<script>
+import UserItem from './UserItem.vue';
+
+export default {
+  components: {
+    UserItem,
+  },
+  inject: ['users'],
+  data() {
+    return {
+      changedSaved: false,
+    };
+  },
+  methods: {
+    // 可以通过修改url实现路由跳转
+    test() {
+      this.$router.push('/teams');
+    },
+    savaChanges() {
+      this.changedSaved = true;
+    },
+  },
+  // 离开路由之前进行确认
+  beforeRouteLeave(to, from, next) {
+    console.log('beforeRuterLeave');
+    if (this.changedSaved) {
+      next();
+    } else {
+      confirm('Are you sure you want to leave?') ? next() : next(false);
+    }
+  },
+  //配合离开路由时候提示这个功能使用
+  unmounted() {
+    console.log('unmounted');
+  },
+};
+</script>
+
+<style scoped>
+ul {
+  list-style: none;
+  margin: 2rem auto;
+  max-width: 20rem;
+  padding: 0;
+}
+</style>
+```
+
+2.`beforeRouteEnter`
+
+参考官方文档
+
+3.`beforeRouteUpdate`
+
+参考官方文档
+
+### 路由元信息
+
+
+
+### 总结
+
+路由项目完成为 routing-01-starting-setup
+
+### 历史模式
+
+#### router.js
+
+```js
+import { createRouter, createWebHashHistory } from "vue-router";
+
+const router = createRouter({
+    history: createWebHashHistory(),
+    routes: []
+})
+
+export default router;
+```
+
+
+
 ## Vue UI组件库
 
 
 
 
 
+# Vue 3
 
+![image-20220719221922464](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220719221922464.png)
 
+![image-20220719222017082](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220719222017082.png)
 
+## Provide / Inject
+
+通常，当我们需要从父组件向子组件传递数据时，我们使用 [props](https://v3.cn.vuejs.org/guide/component-props.html)。想象一下这样的结构：有一些深度嵌套的组件，而深层的子组件只需要父组件的部分内容。在这种情况下，如果仍然将 prop 沿着组件链逐级传递下去，可能会很麻烦。
+
+对于这种情况，我们可以使用一对 `provide` 和 `inject`。无论组件层次结构有多深，父组件都可以作为其所有子组件的依赖提供者。这个特性有两个部分：父组件有一个 `provide` 选项来提供数据，子组件有一个 `inject` 选项来开始使用这些数据。
+
+![Provide/inject scheme](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/components_provide.png)
+
+## emits
+
+Vue 3 现在提供一个 `emits` 选项，和现有的 `props` 选项类似。这个选项可以用来定义一个组件可以向其父组件触发的事件
+
+可用于子组建向父组件传递数据
+
+父组件  CoachesList.vue
+
+```vue
+<template>
+  <section>
+    <coach-filter @change-filter="setFilters"></coach-filter>
+  </section>
+  <section>
+    <base-card>
+      <div class="controls">
+        <base-button mode="outline">Refresh</base-button>
+        <base-button link to="/register">Register as coach</base-button>
+      </div>
+      <ul v-if="hasCoaches">
+        <coach-item
+          v-for="coach in filteredCoaches"
+          :key="coach.id"
+          :id="coach.id"
+          :first-name="coach.firstName"
+          :last-name="coach.lastName"
+          :rate="coach.hourlyRate"
+          :areas="coach.areas"
+        ></coach-item>
+      </ul>
+      <h3 v-else>No coaches found</h3>
+    </base-card>
+  </section>
+</template>
+
+<script>
+// import { mapGetters } from 'vuex';
+import CoachItem from '../../component/coaches/CoachItem.vue';
+import CoachFilter from '../../component/coaches/CoachFilter.vue';
+export default {
+  components: {
+    CoachItem,
+    CoachFilter,
+  },
+  data() {
+    return {
+      activeFilters: {
+        frontend: true,
+        backend: true,
+        career: true,
+      },
+    };
+  },
+  computed: {
+    filteredCoaches() {
+      // 第一个coaches是modules的名字(在store/index.js)，第二个coaches是具体module里getter的名字
+      // ...mapGetters('coaches', ['coaches']), //和下面的效果一样
+      // return this.$store.getters['coaches/coaches'];
+      const coaches = this.$store.getters['coaches/coaches'];
+      return coaches.filter((coach) => {
+        if (this.activeFilters.frontend && coach.areas.includes('frontend')) {
+          return true;
+        }
+        if (this.activeFilters.backend && coach.areas.includes('backend')) {
+          return true;
+        }
+        if (this.activeFilters.career && coach.areas.includes('career')) {
+          return true;
+        }
+        return false;
+      });
+    },
+
+    hasCoaches() {
+      return this.$store.getters['coaches/hasCoaches'];
+    },
+  },
+  methods: {
+    setFilters(updatedFilters) {
+      this.activeFilters = updatedFilters;
+    },
+  },
+};
+</script>
+
+<style scoped>
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.controls {
+  display: flex;
+  justify-content: space-between;
+}
+</style>
+```
+
+子组件  CoachFilter.vue
+
+```vue
+<template>
+  <h2>Find Your Coach</h2>
+  <span class="filter-option">
+    <input type="checkbox" id="frontend" checked @change="setFilter" />
+    <label for="frontend">Frontend</label>
+  </span>
+  <span class="filter-option">
+    <input type="checkbox" id="backend" checked @change="setFilter" />
+    <label for="backend">Backend</label>
+  </span>
+  <span class="filter-option">
+    <input type="checkbox" id="career" checked @change="setFilter" />
+    <label for="career">Career</label>
+  </span>
+</template>
+
+<script>
+export default {
+  // vue3中新增的emits选项  这个选项可以用来定义一个组件可以向其父组件触发的事件。
+  emits: ['change-filter'],
+  data() {
+    return {
+      filters: {
+        frontend: true,
+        backend: true,
+        career: true,
+      },
+    };
+  },
+  methods: {
+    setFilter(e) {
+      // event.target 触发事件的对象 (某个 DOM 元素) 的引用
+      const inputId = e.target.id;
+      const isActive = e.target.checked;
+      const updatedFilters = {
+        ...this.filters,
+        [inputId]: isActive,
+      };
+      this.filters = updatedFilters;
+      //change-filter为自定义组建   updatedFilters为向父组建传递的值
+      this.$emit('change-filter', updatedFilters);
+    },
+  },
+};
+</script>
+
+<style scoped>
+h2 {
+  margin: 0.5rem 0;
+}
+
+.filter-option {
+  margin-right: 1rem;
+}
+
+.filter-option label,
+.filter-option input {
+  vertical-align: middle;
+}
+
+.filter-option label {
+  margin-left: 0.25rem;
+}
+
+.filter-option.active label {
+  font-weight: bold;
+}
+</style>
+```
 

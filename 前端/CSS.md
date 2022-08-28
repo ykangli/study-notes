@@ -34,7 +34,7 @@
 
 ![image-20220710180309827](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220710180309827.png)
 
-块元素  ==> 内敛        
+块元素  ==> 内联
 
 ![image-20220710180726574](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220710180726574.png)
 
@@ -70,17 +70,21 @@
 
 长款默认是 CONTENT的  ，使用 `box-sizing：border-box`后产生变化
 
-## Flebox
+## Flexbox
 
-53 开始没学
+### Flexbox概念
 
+![image-20220714204018801](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220714204018801.png)
 
+### Flexbox术语
 
+flex container 和 flex items
 
+flex container就是 各items 的父元素
 
+![image-20220714204443121](https://ykangliblog.oss-cn-beijing.aliyuncs.com/article/image-20220714204443121.png)
 
-
-
+看到 057 （未看）
 
 
 
